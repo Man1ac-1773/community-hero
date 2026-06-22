@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
+import AuthNav from "@/components/AuthNav";
 
 export const metadata: Metadata = {
   title: "CIVIC WATCH - Community Issue Tracker",
@@ -23,6 +24,7 @@ export default function RootLayout({
             <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <Link href="/report" className="nav-link">Report Issue</Link>
               <Link href="/map" className="nav-link">Live Map</Link>
+              <AuthNav />
             </nav>
           </div>
         </header>

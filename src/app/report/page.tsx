@@ -1,6 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { auth } from '@/lib/firebase';
+import { User } from 'firebase/auth';
 
 // Dynamically import map component to avoid SSR issues with Leaflet
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false, loading: () => <div style={{ height: '400px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>LOADING MAP...</div> });
@@ -11,6 +13,12 @@ export default function ReportPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<{ category: string, severity: string, description: string } | null>(null);
   const [position, setPosition] = useState<[number, number] | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
+    return () => unsubscribe();
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -45,6 +53,10 @@ export default function ReportPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      alert("YOU MUST BE LOGGED IN TO SUBMIT A REPORT.");
+      return;
+    }
     if (!image || !analysis || !position) {
       alert("PLEASE COMPLETE ALL STEPS: UPLOAD IMAGE, WAIT FOR AI ANALYSIS, AND PICK A LOCATION.");
       return;
@@ -70,7 +82,9 @@ export default function ReportPage() {
         lat: position[0],
         lng: position[1],
         status: 'OPEN',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        userId: user.uid,
+        userName: user.displayName || 'Anonymous'
       });
 
       alert("REPORT SUBMITTED SUCCESSFULLY!");
@@ -90,7 +104,14 @@ export default function ReportPage() {
     <main className="container" style={{ padding: '4rem 2rem' }}>
       <h1 style={{ fontSize: '4rem', marginBottom: '3rem' }}>REPORT NEW ISSUE</h1>
       
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '3rem' }}>
+      {!user && (
+        <div style={{ padding: '2rem', backgroundColor: 'var(--text-color)', color: 'white', border: '2px solid var(--border-color)', marginBottom: '2rem', textAlign: 'center' }}>
+          <h2 style={{ color: 'var(--primary-color)' }}>AUTHENTICATION REQUIRED</h2>
+          <p style={{ fontWeight: 600, marginTop: '0.5rem' }}>Please login using the Google button in the header to submit a civic report.</p>
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '3rem', opacity: user ? 1 : 0.5, pointerEvents: user ? 'auto' : 'none' }}>
         
         {/* Left Column: Image & Analysis */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
