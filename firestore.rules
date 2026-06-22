@@ -3,17 +3,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /reports/{reportId} {
-      // Anyone can read reports for the live map
       allow read: if true;
-      
-      // Only authenticated users can create reports, and they must attach their UID
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      
-      // Users can only delete their own reports
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
       
-      // No updates allowed (immutable reports for MVP)
-      allow update: if false;
+      // Allow authenticated users to upvote/verify
+      allow update: if request.auth != null 
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verifiedBy'])
+                    && request.resource.data.verifiedBy.hasAll([request.auth.uid]);
     }
   }
 }

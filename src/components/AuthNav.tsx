@@ -29,7 +29,10 @@ export default function AuthNav() {
   if (user) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <span style={{ fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>{user.displayName}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <span style={{ fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>{user.displayName}</span>
+          <span style={{ fontWeight: 600, fontSize: '0.7rem', color: '#888' }}>⭐ HERO LEVEL 3</span>
+        </div>
         <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', border: '2px solid var(--border-color)', boxShadow: '2px 2px 0px 0px #111111' }}>
           LOGOUT
         </button>

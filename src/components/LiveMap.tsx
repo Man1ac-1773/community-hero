@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { auth } from '@/lib/firebase';
+import { User } from 'firebase/auth';
 
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -14,7 +16,7 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 interface Report {
-  id: number;
+  id: string;
   image: string;
   category: string;
   severity: string;
@@ -23,6 +25,8 @@ interface Report {
   lng: number;
   status: string;
   timestamp: string;
+  verifiedBy?: string[];
+  userId?: string;
 }
 
 function RecenterAutomatically({ center }: { center: [number, number] }) {
@@ -33,9 +37,14 @@ function RecenterAutomatically({ center }: { center: [number, number] }) {
   return null;
 }
 
-export default function LiveMap() {
-  const [reports, setReports] = useState<Report[]>([]);
+export default function LiveMap({ reports, setReports }: { reports: Report[], setReports: any }) {
   const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function fetchReports() {
@@ -71,7 +80,27 @@ export default function LiveMap() {
       }
     }
     fetchReports();
-  }, []);
+  }, [setReports]);
+
+  const handleVerify = async (reportId: string) => {
+    if (!user) {
+      alert("PLEASE LOGIN TO VERIFY REPORTS.");
+      return;
+    }
+    try {
+      const { db } = await import('@/lib/firebase');
+      const { doc, updateDoc, arrayUnion } = await import('firebase/firestore');
+      const reportRef = doc(db, 'reports', reportId);
+      await updateDoc(reportRef, {
+        verifiedBy: arrayUnion(user.uid)
+      });
+      // Optimistic update
+      setReports((prev: Report[]) => prev.map(r => r.id === reportId ? { ...r, verifiedBy: [...(r.verifiedBy || []), user.uid] } : r));
+    } catch (err) {
+      console.error("Error verifying:", err);
+      alert("Failed to verify. Check console.");
+    }
+  };
 
   return (
     <div style={{ height: '70vh', width: '100%', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', zIndex: 0, position: 'relative', backgroundColor: 'white' }}>
@@ -81,7 +110,10 @@ export default function LiveMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterAutomatically center={center} />
-        {reports.map((report) => (
+        {reports.map((report) => {
+          const hasVerified = user && report.verifiedBy?.includes(user.uid);
+          const verifyCount = report.verifiedBy?.length || 0;
+          return (
           <Marker key={report.id} position={[report.lat, report.lng]}>
             <Popup>
               <div style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
@@ -90,13 +122,29 @@ export default function LiveMap() {
                 </strong>
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>SEVERITY: {report.severity}</p>
                 <p style={{ margin: '0 0 0.5rem 0' }}>{report.description}</p>
-                <div style={{ marginTop: '0.5rem', padding: '0.25rem 0.5rem', backgroundColor: 'var(--text-color)', color: 'white', display: 'inline-block', fontWeight: 700, fontSize: '0.8rem' }}>
-                  {report.status}
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--text-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
+                    {report.status}
+                  </div>
+                  {verifyCount > 0 && (
+                    <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--primary-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
+                      {verifyCount} VERIFICATIONS
+                    </div>
+                  )}
                 </div>
+                
+                {user && report.userId !== user.uid && !hasVerified && (
+                  <button 
+                    onClick={() => handleVerify(report.id)}
+                    style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', backgroundColor: 'transparent', border: '2px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    VERIFY ISSUE
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
-        ))}
+        )})}
       </MapContainer>
     </div>
   );
