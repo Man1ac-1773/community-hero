@@ -39,7 +39,7 @@ function RecenterAutomatically({ center }: { center: [number, number] }) {
 }
 
 export default function MapPicker({ position, setPosition }: MapPickerProps) {
-  const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
+  const [center, setCenter] = useState<[number, number]>([12.9716, 77.5946]); // Bangalore default
 
   useEffect(() => {
     if (navigator.geolocation) {
