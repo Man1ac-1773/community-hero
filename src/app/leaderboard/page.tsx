@@ -35,8 +35,15 @@ export default function LeaderboardPage() {
           }
 
           // Add verification scores
-          if (report.verifiedBy && Array.isArray(report.verifiedBy)) {
-            report.verifiedBy.forEach((vUserId: string) => {
+          let verifiedArr: string[] = [];
+          if (typeof report.verifiedBy === 'string') {
+            try { verifiedArr = JSON.parse(report.verifiedBy); } catch(e){}
+          } else if (Array.isArray(report.verifiedBy)) {
+            verifiedArr = report.verifiedBy;
+          }
+
+          if (verifiedArr.length > 0) {
+            verifiedArr.forEach((vUserId: string) => {
               if (!userMap.has(vUserId)) {
                 userMap.set(vUserId, { userId: vUserId, userName: 'Citizen ' + vUserId.substring(0,4), reportsSubmitted: 0, reportsVerified: 0, impactScore: 0 });
               }

@@ -32,23 +32,22 @@ export default function ProfilePage() {
 
       if (currentUser) {
         // Fetch user's own reports
-        const { data: myData } = await supabase
+        const { data: myData, error: myError } = await supabase
           .from('reports')
           .select('*')
-          .eq('userId', currentUser.id)
-          .order('created_at', { ascending: false });
+          .eq('userId', currentUser.id);
         
         if (myData) setMyReports(myData as Report[]);
+        if (myError) console.error("My reports error:", myError);
 
-        // Fetch reports verified by the user
-        // Using ilike because verifiedBy might be stored as a text string (JSON) instead of array in the user's DB
-        const { data: verifiedData } = await supabase
+        // Using ilike because verifiedBy is a stringified JSON array
+        const { data: verifiedData, error: vError } = await supabase
           .from('reports')
           .select('*')
-          .contains('verifiedBy', [currentUser.id])
-          .order('created_at', { ascending: false });
+          .ilike('verifiedBy', `%${currentUser.id}%`);
 
         if (verifiedData) setVerifiedReports(verifiedData as Report[]);
+        if (vError) console.error("Verified reports error:", vError);
       }
       setLoading(false);
     }
