@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useToast } from '@/components/ToastProvider';
 import DiscussionModal from '@/components/DiscussionModal';
+import ResolveModal from '@/components/ResolveModal';
 
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -44,6 +45,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [activeDiscussion, setActiveDiscussion] = useState<string | null>(null);
+  const [resolvingReport, setResolvingReport] = useState<Report | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -191,6 +193,15 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
                     DISCUSS
                   </button>
                 </div>
+
+                {report.status === 'OPEN' && (
+                  <button 
+                    onClick={() => setResolvingReport(report)}
+                    style={{ marginTop: '0.5rem', width: '100%', padding: '0.5rem', backgroundColor: '#00E676', border: '2px solid var(--border-color)', color: 'black', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    MARK AS RESOLVED
+                  </button>
+                )}
               </div>
             </Popup>
           </Marker>
@@ -202,6 +213,17 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
           reportId={activeDiscussion} 
           user={user} 
           onClose={() => setActiveDiscussion(null)} 
+        />
+      )}
+
+      {resolvingReport && (
+        <ResolveModal 
+          report={resolvingReport}
+          user={user}
+          onClose={() => setResolvingReport(null)}
+          onResolved={() => {
+            setReports((prev: Report[]) => prev.map(r => r.id === resolvingReport.id ? { ...r, status: 'RESOLVED' } : r));
+          }}
         />
       )}
     </div>
