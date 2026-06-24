@@ -12,7 +12,7 @@ interface Comment {
   created_at: string;
 }
 
-export default function DiscussionModal({ reportId, onClose, user }: { reportId: string, onClose: () => void, user: any }) {
+export default function DiscussionBoard({ reportId, user }: { reportId: string, user: any }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
@@ -59,15 +59,12 @@ export default function DiscussionModal({ reportId, onClose, user }: { reportId:
   };
 
   return (
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}>
-      <div className="brutalist-panel" style={{ width: '100%', maxWidth: '600px', backgroundColor: 'var(--bg-color)', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '4px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>CIVIC DISCUSSION</h2>
-          <button onClick={onClose} style={{ fontWeight: 800, fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer' }}>X</button>
-        </div>
-
-        <div style={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem', marginBottom: '1rem' }}>
+    <div className="brutalist-panel" style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg-color)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '4px solid var(--border-color)', padding: '1.5rem', backgroundColor: '#FFEA00' }}>
+        <h2 style={{ margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>CIVIC DISCUSSION</h2>
+      </div>
+      
+      <div style={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
           {loading ? (
             <p style={{ fontWeight: 800 }}>LOADING...</p>
           ) : comments.length === 0 ? (
@@ -82,7 +79,7 @@ export default function DiscussionModal({ reportId, onClose, user }: { reportId:
           )}
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '1rem', padding: '1.5rem', borderTop: '4px solid var(--border-color)', backgroundColor: 'white' }}>
           <input 
             type="text" 
             value={newComment}
@@ -92,8 +89,6 @@ export default function DiscussionModal({ reportId, onClose, user }: { reportId:
           />
           <button type="submit" className="btn-primary" style={{ padding: '1rem 2rem', fontSize: '1rem' }}>POST</button>
         </form>
-
-      </div>
     </div>
   );
 }

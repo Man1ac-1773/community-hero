@@ -3,11 +3,10 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useToast } from '@/components/ToastProvider';
-import DiscussionModal from '@/components/DiscussionModal';
-import ResolveModal from '@/components/ResolveModal';
 
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -155,8 +154,6 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
         />
         <RecenterAutomatically center={center} />
         {filteredReports.map((report, index) => {
-          const hasVerified = user && report.verifiedBy?.includes(user.id);
-          const verifyCount = report.verifiedBy?.length || 0;
           return (
           <Marker key={report.id || `fallback-${index}`} position={[report.lat, report.lng]}>
             <Popup>
@@ -177,62 +174,18 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
                   <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--text-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
                     {report.status}
                   </div>
-                  {verifyCount > 0 && (
-                    <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--primary-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
-                      {verifyCount} VERIFICATIONS
-                    </div>
-                  )}
                 </div>
                 
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                  {user && report.userId !== user.id && !hasVerified && (
-                    <button 
-                      onClick={() => handleVerify(report.id)}
-                      style={{ flexGrow: 1, padding: '0.5rem', backgroundColor: 'transparent', border: '2px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      VERIFY
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => setActiveDiscussion(report.id)}
-                    style={{ flexGrow: 1, padding: '0.5rem', backgroundColor: 'var(--text-color)', border: '2px solid var(--border-color)', color: 'white', fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    DISCUSS
+                <Link href={`/issue/${report.id}`}>
+                  <button style={{ marginTop: '1rem', width: '100%', padding: '0.75rem', backgroundColor: 'var(--primary-color)', color: 'white', fontWeight: 800, border: '2px solid var(--border-color)', cursor: 'pointer', fontFamily: '"Space Grotesk", sans-serif' }}>
+                    VIEW FULL DETAILS
                   </button>
-                </div>
-
-                {report.status === 'OPEN' && (
-                  <button 
-                    onClick={() => setResolvingReport(report)}
-                    style={{ marginTop: '0.5rem', width: '100%', padding: '0.5rem', backgroundColor: '#00E676', border: '2px solid var(--border-color)', color: 'black', fontWeight: 800, cursor: 'pointer' }}
-                  >
-                    MARK AS RESOLVED
-                  </button>
-                )}
+                </Link>
               </div>
             </Popup>
           </Marker>
         )})}
       </MapContainer>
-
-      {activeDiscussion && (
-        <DiscussionModal 
-          reportId={activeDiscussion} 
-          user={user} 
-          onClose={() => setActiveDiscussion(null)} 
-        />
-      )}
-
-      {resolvingReport && (
-        <ResolveModal 
-          report={resolvingReport}
-          user={user}
-          onClose={() => setResolvingReport(null)}
-          onResolved={() => {
-            setReports((prev: Report[]) => prev.map(r => r.id === resolvingReport.id ? { ...r, status: 'RESOLVED' } : r));
-          }}
-        />
-      )}
     </div>
   );
 }
