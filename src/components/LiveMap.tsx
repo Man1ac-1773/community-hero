@@ -40,6 +40,8 @@ function RecenterAutomatically({ center }: { center: [number, number] }) {
 export default function LiveMap({ reports, setReports }: { reports: Report[], setReports: any }) {
   const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
   const [user, setUser] = useState<User | null>(null);
+  const [filterSeverity, setFilterSeverity] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ALL');
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -109,15 +111,39 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
     }
   };
 
+  const filteredReports = reports.filter(r => {
+    if (filterSeverity !== 'ALL' && r.severity?.toUpperCase() !== filterSeverity) return false;
+    if (filterStatus !== 'ALL' && r.status?.toUpperCase() !== filterStatus) return false;
+    return true;
+  });
+
   return (
     <div style={{ height: '70vh', width: '100%', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', zIndex: 0, position: 'relative', backgroundColor: 'white' }}>
-      <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+      
+      {/* FILTER CONTROL PANEL */}
+      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '1rem', border: '3px solid black', boxShadow: '4px 4px 0px #111' }}>
+        <h3 style={{ margin: 0, fontSize: '1rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>FILTERS</h3>
+        <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} style={{ padding: '0.5rem', border: '2px solid black', fontWeight: 600, fontFamily: '"Space Grotesk", sans-serif' }}>
+          <option value="ALL">ALL SEVERITIES</option>
+          <option value="CRITICAL">CRITICAL</option>
+          <option value="HIGH">HIGH</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="LOW">LOW</option>
+        </select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding: '0.5rem', border: '2px solid black', fontWeight: 600, fontFamily: '"Space Grotesk", sans-serif' }}>
+          <option value="ALL">ALL STATUSES</option>
+          <option value="OPEN">OPEN</option>
+          <option value="RESOLVED">RESOLVED</option>
+        </select>
+      </div>
+
+      <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', zIndex: 1 }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterAutomatically center={center} />
-        {reports.map((report, index) => {
+        {filteredReports.map((report, index) => {
           const hasVerified = user && report.verifiedBy?.includes(user.id);
           const verifyCount = report.verifiedBy?.length || 0;
           return (
