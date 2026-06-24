@@ -235,8 +235,14 @@ export default function IssuePage() {
             CIVIC BOUNTY: {report.severity}
           </div>
           <h2 style={{ fontSize: '2rem', margin: 0, textTransform: 'uppercase' }}>{report.category}</h2>
+          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary-color)' }}>
+            REPORTED BY CIVIC HERO: {report.userName || 'ANONYMOUS'}
+          </p>
           {report.imageUrl && <img src={report.imageUrl} alt="Issue" crossOrigin="anonymous" style={{ width: '100%', height: '300px', objectFit: 'cover', border: '4px solid var(--border-color)' }} />}
           <p style={{ fontSize: '1.2rem', fontWeight: 600, borderLeft: '8px solid var(--primary-color)', paddingLeft: '1rem' }}>{report.description}</p>
+          <div style={{ padding: '0.5rem', backgroundColor: '#eee', border: '2px solid var(--border-color)', fontWeight: 700, textAlign: 'center' }}>
+            📍 GPS: {report.lat.toFixed(6)}, {report.lng.toFixed(6)}
+          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '4px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem' }}>
             <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>VERIFICATIONS: {Array.isArray(report.verifiedBy) ? report.verifiedBy.length : (typeof report.verifiedBy === 'string' ? (JSON.parse(report.verifiedBy || '[]').length) : 0)}</span>
             <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>CIVIC WATCH HUB</span>
