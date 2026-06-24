@@ -103,7 +103,7 @@ export default function ProfilePage() {
             <p style={{ fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flexGrow: 1 }} title={report.description}>
               {report.description}
             </p>
-            <Link href="/map" style={{ marginTop: '1rem', textAlign: 'center', display: 'block', padding: '0.5rem', border: '2px solid var(--border-color)', color: 'var(--text-color)', fontWeight: 700, textDecoration: 'none' }}>
+            <Link href={`/map?issueId=${report.id}`} style={{ marginTop: '1rem', textAlign: 'center', display: 'block', padding: '0.5rem', border: '2px solid var(--border-color)', color: 'var(--text-color)', fontWeight: 700, textDecoration: 'none' }}>
               VIEW ON MAP
             </Link>
           </div>

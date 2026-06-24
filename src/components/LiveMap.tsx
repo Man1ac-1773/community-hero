@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -46,6 +46,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   const [activeDiscussion, setActiveDiscussion] = useState<string | null>(null);
   const [resolvingReport, setResolvingReport] = useState<Report | null>(null);
   const { showToast } = useToast();
+  const markerRefs = useRef<{ [key: string]: L.Marker | null }>({});
 
   useEffect(() => {
     async function fetchReports() {
@@ -56,7 +57,15 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
         const savedReports = data as Report[];
         setReports(savedReports);
 
-        if (navigator.geolocation) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const issueId = urlParams.get('issueId');
+
+        if (issueId) {
+          const target = savedReports.find(r => r.id === issueId);
+          if (target) {
+            setCenter([target.lat, target.lng]);
+          }
+        } else if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               setCenter([pos.coords.latitude, pos.coords.longitude]);
@@ -78,6 +87,18 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
     }
     fetchReports();
   }, [setReports]);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const issueId = urlParams.get('issueId');
+    if (issueId && reports.length > 0) {
+      setTimeout(() => {
+        if (markerRefs.current[issueId]) {
+          markerRefs.current[issueId]?.openPopup();
+        }
+      }, 500); // Wait for map render
+    }
+  }, [reports]);
 
   const handleVerify = async (reportId: string) => {
     if (!user) {
@@ -145,7 +166,11 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
         <RecenterAutomatically center={center} />
         {filteredReports.map((report, index) => {
           return (
-          <Marker key={report.id || `fallback-${index}`} position={[report.lat, report.lng]}>
+          <Marker 
+            key={report.id || `fallback-${index}`} 
+            position={[report.lat, report.lng]}
+            ref={(r) => { markerRefs.current[report.id] = r; }}
+          >
             <Popup>
               <div style={{ fontFamily: '"Space Grotesk", sans-serif', maxWidth: '300px' }}>
                 <strong style={{ display: 'block', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: 'var(--primary-color)' }}>
