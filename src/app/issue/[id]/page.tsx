@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import DiscussionBoard from '@/components/DiscussionBoard';
 import html2canvas from 'html2canvas';
+import dynamic from 'next/dynamic';
+
+const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 import Link from 'next/link';
 import { useToast } from '@/components/ToastProvider';
 import { useParams, useRouter } from 'next/navigation';
@@ -15,6 +18,8 @@ export default function IssuePage() {
   
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const [newPosition, setNewPosition] = useState<[number, number] | null>(null);
   const { user } = useAuth();
   const { showToast } = useToast();
   const shareCardRef = useRef<HTMLDivElement>(null);
@@ -142,6 +147,24 @@ export default function IssuePage() {
     }
   };
 
+  const handleUpdateLocation = async () => {
+    if (!newPosition) return;
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .update({ lat: newPosition[0], lng: newPosition[1] })
+        .eq('id', report.id);
+      
+      if (error) throw error;
+      
+      setReport({ ...report, lat: newPosition[0], lng: newPosition[1] });
+      setIsUpdatingLocation(false);
+      showToast("Location successfully updated!", "success");
+    } catch (err) {
+      showToast("Failed to update location.", "error");
+    }
+  };
+
   if (loading) return <h2 style={{ textAlign: 'center', padding: '4rem' }}>LOADING ISSUE DETAILS...</h2>;
   if (!report) return <h2 style={{ textAlign: 'center', padding: '4rem' }}>ISSUE NOT FOUND.</h2>;
 
@@ -244,6 +267,12 @@ export default function IssuePage() {
                 {(Array.isArray(report.subscribers) && report.subscribers.includes(user.id)) ? 'SUBSCRIBED TO UPDATES' : 'SUBSCRIBE TO UPDATES'}
               </button>
             )}
+
+            {user && report.userId === user.id && (
+              <button onClick={() => { setIsUpdatingLocation(true); setNewPosition([report.lat, report.lng]); }} className="btn-secondary" style={{ marginTop: '1rem', width: '100%', padding: '0.75rem', backgroundColor: 'transparent', border: '3px dashed var(--primary-color)', color: 'var(--primary-color)', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>
+                CORRECT GPS LOCATION
+              </button>
+            )}
           </div>
           
           {/* AUDIT TIMELINE */}
@@ -270,6 +299,27 @@ export default function IssuePage() {
           <DiscussionBoard reportId={report.id} user={user} />
         </div>
       </div>
+
+      {isUpdatingLocation && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}>
+          <div className="brutalist-panel" style={{ width: '100%', maxWidth: '600px', backgroundColor: 'var(--bg-color)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '4px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>UPDATE LOCATION</h2>
+              <button onClick={() => setIsUpdatingLocation(false)} style={{ fontWeight: 800, fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer' }}>X</button>
+            </div>
+            <p style={{ fontWeight: 600, marginBottom: '1rem' }}>Drag the map to correct the GPS coordinates for this issue.</p>
+            <div style={{ marginBottom: '1rem', border: '4px solid var(--border-color)' }}>
+              <MapPicker position={newPosition} setPosition={setNewPosition} />
+            </div>
+            <button 
+              onClick={handleUpdateLocation}
+              className="btn-primary" 
+              style={{ width: '100%', padding: '1rem', fontSize: '1.2rem' }}>
+              SAVE NEW LOCATION
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hidden Share Card for html2canvas */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
