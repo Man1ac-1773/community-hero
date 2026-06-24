@@ -1,8 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import DiscussionBoard from '@/components/DiscussionBoard';
 import ResolveModal from '@/components/ResolveModal';
+import html2canvas from 'html2canvas';
 import Link from 'next/link';
 import { useToast } from '@/components/ToastProvider';
 import { useParams, useRouter } from 'next/navigation';
@@ -18,6 +19,7 @@ export default function IssuePage() {
   const { user } = useAuth();
   const [resolving, setResolving] = useState(false);
   const { showToast } = useToast();
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadIssue() {
@@ -58,6 +60,22 @@ export default function IssuePage() {
       showToast("Verification added!", 'success');
     } catch (err: any) {
       showToast("Unable to log your verification at the moment.", 'error');
+    }
+  };
+
+  const handleShare = async () => {
+    if (!shareCardRef.current) return;
+    try {
+      const canvas = await html2canvas(shareCardRef.current, { useCORS: true, scale: 2 });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `civic-watch-${report.id.substring(0, 8)}.png`;
+      link.href = dataUrl;
+      link.click();
+      showToast("Bounty card downloaded! Share it to rally the community.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to generate shareable card.", "error");
     }
   };
 
@@ -115,14 +133,31 @@ export default function IssuePage() {
             <p style={{ margin: 0, fontWeight: 600, fontSize: '1.2rem', lineHeight: '1.6' }}>{report.description}</p>
           </div>
 
-          <div style={{ marginTop: 'auto', display: 'flex', gap: '1rem' }}>
-            {user && report.userId !== user.id && !hasVerified && (
-              <button onClick={handleVerify} className="btn-secondary" style={{ flexGrow: 1, padding: '1rem', backgroundColor: 'transparent', border: '4px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 800, fontSize: '1.2rem', cursor: 'pointer' }}>
-                VERIFY ISSUE
-              </button>
+          <div style={{ marginTop: 'auto' }}>
+            {user && (
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                {!hasVerified && (
+                  <button 
+                    onClick={handleVerify}
+                    className="btn-primary"
+                    style={{ flexGrow: 1, padding: '1rem', border: '3px solid var(--border-color)', fontWeight: 800, fontSize: '1.2rem', textTransform: 'uppercase', opacity: report.status === 'RESOLVED' ? 0.5 : 1, pointerEvents: report.status === 'RESOLVED' ? 'none' : 'auto' }}
+                  >
+                    VERIFY ISSUE
+                  </button>
+                )}
+                
+                <button 
+                  onClick={handleShare}
+                  className="btn-secondary"
+                  style={{ flexGrow: 1, padding: '1rem', border: '3px solid var(--border-color)', fontWeight: 800, fontSize: '1.2rem', textTransform: 'uppercase', backgroundColor: 'var(--border-color)', color: 'white' }}
+                >
+                  SHARE TO RALLY
+                </button>
+              </div>
             )}
+            
             {report.status === 'OPEN' && (
-              <button onClick={() => setResolving(true)} className="btn-primary" style={{ flexGrow: 1, padding: '1rem', backgroundColor: 'var(--text-color)', border: '4px solid var(--border-color)', color: 'white', fontWeight: 800, fontSize: '1.2rem', cursor: 'pointer' }}>
+              <button onClick={() => setResolving(true)} className="btn-primary" style={{ marginTop: '1rem', width: '100%', padding: '1rem', backgroundColor: 'var(--text-color)', border: '4px solid var(--border-color)', color: 'white', fontWeight: 800, fontSize: '1.2rem', cursor: 'pointer' }}>
                 MARK AS RESOLVED
               </button>
             )}
@@ -145,6 +180,22 @@ export default function IssuePage() {
           }}
         />
       )}
+
+      {/* Hidden Share Card for html2canvas */}
+      <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
+        <div ref={shareCardRef} style={{ width: '600px', backgroundColor: 'var(--bg-color)', padding: '2rem', border: '8px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem', fontFamily: '"Space Grotesk", sans-serif' }}>
+          <div style={{ backgroundColor: 'var(--primary-color)', color: 'white', padding: '1rem', border: '4px solid var(--border-color)', textAlign: 'center', fontWeight: 900, fontSize: '2.5rem', textTransform: 'uppercase' }}>
+            CIVIC BOUNTY: {report.severity}
+          </div>
+          <h2 style={{ fontSize: '2rem', margin: 0, textTransform: 'uppercase' }}>{report.category}</h2>
+          {report.imageUrl && <img src={report.imageUrl} alt="Issue" crossOrigin="anonymous" style={{ width: '100%', height: '300px', objectFit: 'cover', border: '4px solid var(--border-color)' }} />}
+          <p style={{ fontSize: '1.2rem', fontWeight: 600, borderLeft: '8px solid var(--primary-color)', paddingLeft: '1rem' }}>{report.description}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '4px solid var(--border-color)', paddingTop: '1rem', marginTop: '1rem' }}>
+            <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>VERIFICATIONS: {Array.isArray(report.verifiedBy) ? report.verifiedBy.length : (typeof report.verifiedBy === 'string' ? (JSON.parse(report.verifiedBy || '[]').length) : 0)}</span>
+            <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>CIVIC WATCH HUB</span>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }
