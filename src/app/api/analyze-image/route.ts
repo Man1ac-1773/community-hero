@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, Schema } from '@google/generative-ai';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,35 +27,50 @@ export async function POST(req: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    const prompt = `Analyze this civic issue image. Respond ONLY with a valid JSON object matching this exact schema, with no markdown formatting or backticks:
-    {
-      "category": "string (e.g. Pothole, Broken Streetlight, Illegal Dumping)",
-      "severity": "string (e.g. Low, Medium, High, Critical)",
-      "description": "string (A detailed 2-3 sentence description of the issue visible in the image)"
-    }`;
+    const prompt = "Analyze this civic issue image and categorize it.";
+
+    const schema: Schema = {
+      type: SchemaType.OBJECT,
+      properties: {
+        category: {
+          type: SchemaType.STRING,
+          enum: ["Pothole", "Broken Streetlight", "Illegal Dumping", "Vandalism", "Water Leak", "Traffic Signal Issue", "Overgrown Vegetation", "Other"],
+          format: "enum",
+          description: "The category that best describes the issue in the image."
+        },
+        severity: {
+          type: SchemaType.STRING,
+          enum: ["Low", "Medium", "High", "Critical"],
+          format: "enum",
+          description: "The severity of the issue."
+        },
+        description: {
+          type: SchemaType.STRING,
+          description: "A detailed 2-3 sentence description of the issue visible in the image."
+        }
+      },
+      required: ["category", "severity", "description"]
+    };
 
     console.log("[API] Sending payload to Google Generative AI...");
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: imageFile.type
-        }
+    const result = await model.generateContent({
+      contents: [{
+        role: "user",
+        parts: [
+          { text: prompt },
+          { inlineData: { data: base64Data, mimeType: imageFile.type } }
+        ]
+      }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: schema
       }
-    ]);
+    });
 
     const text = result.response.text();
     console.log("[API] Gemini Raw Response:\n", text);
 
-    let cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-    
-    if (!cleanJson.startsWith('{')) {
-       console.error("[API] Gemini did not return a valid JSON object. Raw text:", text);
-       return NextResponse.json({ error: 'AI returned invalid format', rawText: text }, { status: 500 });
-    }
-
-    const parsedData = JSON.parse(cleanJson);
+    const parsedData = JSON.parse(text);
     console.log("[API] Successfully parsed JSON:", parsedData);
     return NextResponse.json(parsedData);
   } catch (error: any) {
