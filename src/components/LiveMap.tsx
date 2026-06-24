@@ -46,7 +46,6 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [activeDiscussion, setActiveDiscussion] = useState<string | null>(null);
   const [resolvingReport, setResolvingReport] = useState<Report | null>(null);
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -130,13 +129,10 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   });
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '70vh', alignItems: 'stretch', justifyContent: 'space-between' }}>
-      
-      {/* MAP WRAPPER */}
-      <div style={{ width: 'calc(100% - 420px)', flexShrink: 0, position: 'relative', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', backgroundColor: 'white', overflow: 'hidden' }}>
+    <div style={{ height: '70vh', width: '100%', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', zIndex: 0, position: 'relative', backgroundColor: 'white' }}>
       
       {/* FILTER CONTROL PANEL */}
-      <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '1rem', border: '3px solid black', boxShadow: '4px 4px 0px #111' }}>
+      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '1rem', border: '3px solid black', boxShadow: '4px 4px 0px #111' }}>
         <h3 style={{ margin: 0, fontSize: '1rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>FILTERS</h3>
         <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} style={{ padding: '0.5rem', border: '2px solid black', fontWeight: 600, fontFamily: '"Space Grotesk", sans-serif' }}>
           <option value="ALL">ALL SEVERITIES</option>
@@ -159,108 +155,65 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
         />
         <RecenterAutomatically center={center} />
         {filteredReports.map((report, index) => {
+          const hasVerified = user && report.verifiedBy?.includes(user.id);
+          const verifyCount = report.verifiedBy?.length || 0;
           return (
-            <Marker 
-              key={report.id || `fallback-${index}`} 
-              position={[report.lat, report.lng]}
-              eventHandlers={{
-                click: () => setSelectedReport(report)
-              }}
-            />
-          );
-        })}
-      </MapContainer>
-      </div>
-
-      {/* RIGHT SIDE PANEL WRAPPER */}
-      <div style={{ width: '400px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-        <div style={{
-          width: '100%',
-          height: '100%',
-          transform: selectedReport ? 'translateX(0)' : 'translateX(100%)',
-          opacity: selectedReport ? 1 : 0,
-          backgroundColor: 'var(--bg-color)',
-          border: '2px solid var(--border-color)',
-          boxShadow: selectedReport ? '8px 8px 0px 0px #111111' : 'none',
-          transition: 'all 0.3s ease-in-out',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 10
-        }}>
-          {selectedReport && (() => {
-          const verifiedByVal = selectedReport.verifiedBy as any;
-          const hasVerified = user && (typeof verifiedByVal === 'string' 
-            ? verifiedByVal.includes(user.id) 
-            : Array.isArray(verifiedByVal) && verifiedByVal.includes(user.id));
-          
-          let verifyCount = 0;
-          if (typeof verifiedByVal === 'string') {
-            try { verifyCount = JSON.parse(verifiedByVal).length; } catch(e){}
-          } else if (Array.isArray(verifiedByVal)) {
-            verifyCount = verifiedByVal.length;
-          }
-
-          return (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '4px solid var(--border-color)' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>ISSUE DETAILS</h3>
-                <button onClick={() => setSelectedReport(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', fontWeight: 800, cursor: 'pointer' }}>X</button>
-              </div>
-              
-              <div style={{ padding: '1.5rem', overflowY: 'auto', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '2rem', textTransform: 'uppercase', marginBottom: '0.5rem', lineHeight: '1' }}>{selectedReport.category}</strong>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--text-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
-                      {selectedReport.status}
+          <Marker key={report.id || `fallback-${index}`} position={[report.lat, report.lng]}>
+            <Popup>
+              <div style={{ fontFamily: '"Space Grotesk", sans-serif', maxWidth: '300px' }}>
+                <strong style={{ display: 'block', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: 'var(--primary-color)' }}>
+                  {report.category}
+                </strong>
+                {report.imageUrl && <img src={report.imageUrl} alt="Issue" style={{ width: '100%', height: '100px', objectFit: 'cover', marginBottom: '0.5rem' }} />}
+                <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>SEVERITY: {report.severity}</p>
+                <p style={{ 
+                  margin: '0 0 0.5rem 0',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }} title={report.description}>{report.description}</p>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--text-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
+                    {report.status}
+                  </div>
+                  {verifyCount > 0 && (
+                    <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--primary-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
+                      {verifyCount} VERIFICATIONS
                     </div>
-                    {verifyCount > 0 && (
-                      <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--primary-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
-                        {verifyCount} VERIFICATIONS
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {selectedReport.imageUrl && <img src={selectedReport.imageUrl} alt="Issue" style={{ width: '100%', height: '200px', objectFit: 'cover', border: '2px solid var(--border-color)', marginTop: '0.5rem' }} />}
-                
-                <div style={{ backgroundColor: 'white', padding: '1rem', border: '2px solid var(--border-color)' }}>
-                  <p style={{ margin: '0 0 0.5rem 0', fontWeight: 800, color: 'var(--primary-color)' }}>SEVERITY: {selectedReport.severity}</p>
-                  <p style={{ margin: 0, fontWeight: 500, lineHeight: '1.5' }}>{selectedReport.description}</p>
-                </div>
-
-                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '1rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {user && selectedReport.userId !== user.id && !hasVerified && (
-                      <button 
-                        onClick={() => handleVerify(selectedReport.id)}
-                        style={{ flexGrow: 1, padding: '0.75rem', backgroundColor: 'transparent', border: '2px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 800, cursor: 'pointer' }}
-                      >
-                        VERIFY
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => setActiveDiscussion(selectedReport.id)}
-                      style={{ flexGrow: 1, padding: '0.75rem', backgroundColor: 'var(--text-color)', border: '2px solid var(--border-color)', color: 'white', fontWeight: 800, cursor: 'pointer' }}
-                    >
-                      DISCUSS
-                    </button>
-                  </div>
-                  {selectedReport.status === 'OPEN' && (
-                    <button 
-                      onClick={() => setResolvingReport(selectedReport)}
-                      style={{ width: '100%', padding: '0.75rem', backgroundColor: '#00E676', border: '2px solid var(--border-color)', color: 'black', fontWeight: 800, cursor: 'pointer' }}
-                    >
-                      MARK AS RESOLVED
-                    </button>
                   )}
                 </div>
+                
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  {user && report.userId !== user.id && !hasVerified && (
+                    <button 
+                      onClick={() => handleVerify(report.id)}
+                      style={{ flexGrow: 1, padding: '0.5rem', backgroundColor: 'transparent', border: '2px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      VERIFY
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setActiveDiscussion(report.id)}
+                    style={{ flexGrow: 1, padding: '0.5rem', backgroundColor: 'var(--text-color)', border: '2px solid var(--border-color)', color: 'white', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    DISCUSS
+                  </button>
+                </div>
+
+                {report.status === 'OPEN' && (
+                  <button 
+                    onClick={() => setResolvingReport(report)}
+                    style={{ marginTop: '0.5rem', width: '100%', padding: '0.5rem', backgroundColor: '#00E676', border: '2px solid var(--border-color)', color: 'black', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    MARK AS RESOLVED
+                  </button>
+                )}
               </div>
-            </div>
-          );
-        })()}
-      </div>
-      </div>
+            </Popup>
+          </Marker>
+        )})}
+      </MapContainer>
 
       {activeDiscussion && (
         <DiscussionModal 
