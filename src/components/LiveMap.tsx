@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import 'leaflet.heat';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ToastProvider';
@@ -38,11 +39,38 @@ function RecenterAutomatically({ center }: { center: [number, number] }) {
   return null;
 }
 
+function HeatmapLayer({ reports }: { reports: Report[] }) {
+  const map = useMap();
+  useEffect(() => {
+    const heatData = reports.map(r => {
+      let intensity = 0.5;
+      if (r.severity?.toUpperCase() === 'CRITICAL') intensity = 1;
+      else if (r.severity?.toUpperCase() === 'HIGH') intensity = 0.8;
+      else if (r.severity?.toUpperCase() === 'LOW') intensity = 0.2;
+      return [r.lat, r.lng, intensity] as [number, number, number];
+    });
+
+    // @ts-ignore
+    const heatLayer = L.heatLayer(heatData, {
+      radius: 25,
+      blur: 15,
+      maxZoom: 17,
+      gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
+    }).addTo(map);
+
+    return () => {
+      map.removeLayer(heatLayer);
+    };
+  }, [reports, map]);
+  return null;
+}
+
 export default function LiveMap({ reports, setReports }: { reports: Report[], setReports: any }) {
   const [center, setCenter] = useState<[number, number]>([12.9716, 77.5946]); // Bangalore default
   const { user } = useAuth();
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [viewMode, setViewMode] = useState<'PIN' | 'HEATMAP'>('PIN');
   const [activeDiscussion, setActiveDiscussion] = useState<string | null>(null);
   const [resolvingReport, setResolvingReport] = useState<Report | null>(null);
   const { showToast } = useToast();
@@ -144,6 +172,10 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
       {/* FILTER CONTROL PANEL */}
       <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '1rem', border: '3px solid black', boxShadow: '4px 4px 0px #111' }}>
         <h3 style={{ margin: 0, fontSize: '1rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>FILTERS</h3>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <button onClick={() => setViewMode('PIN')} style={{ flexGrow: 1, padding: '0.5rem', fontWeight: 800, backgroundColor: viewMode === 'PIN' ? 'black' : 'white', color: viewMode === 'PIN' ? 'white' : 'black', border: '2px solid black', cursor: 'pointer' }}>PIN</button>
+          <button onClick={() => setViewMode('HEATMAP')} style={{ flexGrow: 1, padding: '0.5rem', fontWeight: 800, backgroundColor: viewMode === 'HEATMAP' ? 'black' : 'white', color: viewMode === 'HEATMAP' ? 'white' : 'black', border: '2px solid black', cursor: 'pointer' }}>HEAT</button>
+        </div>
         <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} style={{ padding: '0.5rem', border: '2px solid black', fontWeight: 600, fontFamily: '"Space Grotesk", sans-serif' }}>
           <option value="ALL">ALL SEVERITIES</option>
           <option value="CRITICAL">CRITICAL</option>
@@ -164,10 +196,13 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterAutomatically center={center} />
-        {filteredReports.map((report, index) => {
-          return (
-          <Marker 
-            key={report.id || `fallback-${index}`} 
+        {viewMode === 'HEATMAP' ? (
+          <HeatmapLayer reports={filteredReports} />
+        ) : (
+          filteredReports.map((report, index) => {
+            return (
+            <Marker 
+              key={report.id || `fallback-${index}`} 
             position={[report.lat, report.lng]}
             ref={(r) => { markerRefs.current[report.id] = r; }}
           >
@@ -199,7 +234,9 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
               </div>
             </Popup>
           </Marker>
-        )})}
+          )
+        })
+        )}
       </MapContainer>
     </div>
   );
