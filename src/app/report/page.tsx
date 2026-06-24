@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ToastProvider';
 import { compressImage } from '@/lib/image';
 import { useAuth } from '@/lib/hooks';
+import exifr from 'exifr';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false, loading: () => <div style={{ height: '400px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>LOADING MAP...</div> });
 
@@ -14,6 +15,7 @@ export default function ReportPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<{ category: string, severity: string, description: string } | null>(null);
   const [position, setPosition] = useState<[number, number] | null>(null);
+  const [exifLocation, setExifLocation] = useState<[number, number] | null>(null);
   const { user } = useAuth();
   const { showToast } = useToast();
 
@@ -28,6 +30,20 @@ export default function ReportPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Extract EXIF location
+      try {
+        const gps = await exifr.gps(file);
+        if (gps && gps.latitude && gps.longitude) {
+          setExifLocation([gps.latitude, gps.longitude]);
+          showToast("Geotag found! Updating map location.", "success");
+        } else {
+          setExifLocation(null);
+        }
+      } catch (err) {
+        setExifLocation(null);
+      }
+
       try {
         const compressedFile = await compressImage(file);
         setImage(compressedFile);
@@ -194,7 +210,7 @@ export default function ReportPage() {
             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>3 / PIN LOCATION</h3>
             <p style={{ marginBottom: '1.5rem', fontWeight: 600 }}>CLICK ON THE MAP TO MARK THE EXACT LOCATION OF THE ISSUE.</p>
             <div style={{ flexGrow: 1 }}>
-               <MapPicker position={position} setPosition={setPosition} />
+               <MapPicker position={position} setPosition={setPosition} suggestedLocation={exifLocation} />
             </div>
             {position && (
               <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-color)', border: '2px solid var(--border-color)' }}>
