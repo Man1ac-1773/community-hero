@@ -60,7 +60,7 @@ export default function DiscussionBoard({ reportId, user }: { reportId: string, 
 
   return (
     <div className="brutalist-panel" style={{ width: '100%', height: '100%', backgroundColor: 'var(--bg-color)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '4px solid var(--border-color)', padding: '1.5rem', backgroundColor: '#FFEA00' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '4px solid var(--border-color)', padding: '1.5rem', backgroundColor: 'var(--primary-color)', color: 'white' }}>
         <h2 style={{ margin: 0, fontSize: '1.5rem', textTransform: 'uppercase' }}>CIVIC DISCUSSION</h2>
       </div>
       
@@ -73,7 +73,7 @@ export default function DiscussionBoard({ reportId, user }: { reportId: string, 
             comments.map(c => (
               <div key={c.id} style={{ padding: '1rem', border: '2px solid var(--border-color)', backgroundColor: c.userId === user?.id ? 'var(--text-color)' : 'white', color: c.userId === user?.id ? 'white' : 'black' }}>
                 <strong style={{ display: 'block', color: c.userId === user?.id ? 'var(--primary-color)' : 'var(--primary-color)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{c.userName.toUpperCase()}</strong>
-                <p style={{ margin: 0, fontWeight: 500 }}>{c.content}</p>
+                <p style={{ margin: 0, fontWeight: 600 }}>{c.content}</p>
               </div>
             ))
           )}

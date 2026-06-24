@@ -24,17 +24,17 @@ export default function Home() {
         <div className="brutalist-panel">
           <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.5rem' }}>01 / SNAP</div>
           <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>TAKE A PHOTO</h3>
-          <p style={{ fontWeight: 500 }}>Notice a pothole, broken streetlight, or waste? Just take a quick picture. We handle the manual entry.</p>
+          <p style={{ fontWeight: 600 }}>Notice a pothole, broken streetlight, or waste? Just take a quick picture. We handle the manual entry.</p>
         </div>
         <div className="brutalist-panel" style={{ backgroundColor: 'var(--text-color)', color: 'white' }}>
           <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.5rem' }}>02 / AI</div>
           <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>GEMINI ANALYSIS</h3>
-          <p style={{ fontWeight: 500, color: '#f0f0f0' }}>Powered by Gemini, our platform analyzes your image to determine the category and severity instantly.</p>
+          <p style={{ fontWeight: 600, color: '#f0f0f0' }}>Powered by Gemini, our platform analyzes your image to determine the category and severity instantly.</p>
         </div>
         <div className="brutalist-panel">
           <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-color)', marginBottom: '0.5rem' }}>03 / MAP</div>
           <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>LIVE TRACKING</h3>
-          <p style={{ fontWeight: 500 }}>Your issue is pinned on the live map where the community and authorities can track its resolution.</p>
+          <p style={{ fontWeight: 600 }}>Your issue is pinned on the live map where the community and authorities can track its resolution.</p>
         </div>
       </section>
     </main>

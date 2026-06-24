@@ -65,7 +65,7 @@ export default function LeaderboardPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '800px', margin: '0 auto' }}>
           {leaders.map((leader, index) => (
-            <div key={leader.userId} className="brutalist-panel" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: index === 0 ? '#FFEA00' : index === 1 ? '#e0e0e0' : index === 2 ? '#cd7f32' : 'var(--bg-color)', color: 'black' }}>
+            <div key={leader.userId} className="brutalist-panel" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem', backgroundColor: index === 0 ? 'var(--primary-color)' : index === 1 ? 'white' : index === 2 ? 'white' : 'var(--bg-color)', color: index === 0 ? 'white' : 'black' }}>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, width: '60px', textAlign: 'center', borderRight: '4px solid var(--border-color)', marginRight: '1.5rem', paddingRight: '1rem' }}>
                 #{index + 1}
               </div>
@@ -77,7 +77,7 @@ export default function LeaderboardPage() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: index < 3 ? 'black' : 'var(--primary-color)' }}>{leader.impactScore}</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 800, color: index === 0 ? 'white' : index < 3 ? 'black' : 'var(--primary-color)' }}>{leader.impactScore}</div>
                 <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase' }}>IMPACT SCORE</div>
               </div>
             </div>

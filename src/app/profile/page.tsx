@@ -45,7 +45,7 @@ export default function ProfilePage() {
         const { data: verifiedData } = await supabase
           .from('reports')
           .select('*')
-          .ilike('verifiedBy', `%${currentUser.id}%`)
+          .contains('verifiedBy', [currentUser.id])
           .order('created_at', { ascending: false });
 
         if (verifiedData) setVerifiedReports(verifiedData as Report[]);
@@ -123,7 +123,7 @@ export default function ProfilePage() {
             {user.user_metadata?.full_name || user.email?.split('@')[0]}
           </h1>
           <div style={{ display: 'inline-block', padding: '0.5rem 1rem', backgroundColor: 'var(--primary-color)', color: 'white', fontWeight: 800, fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '1.5rem', border: '2px solid var(--border-color)', boxShadow: '4px 4px 0px 0px #111111' }}>
-            ⭐ LEVEL {heroLevel} : {heroTitle}
+            [ LEVEL {heroLevel} : {heroTitle} ]
           </div>
           <p style={{ fontSize: '1.1rem', fontWeight: 600 }}>Your civic impact score is <span style={{ color: 'var(--primary-color)', fontWeight: 800 }}>{impactScore} points</span>.</p>
         </div>

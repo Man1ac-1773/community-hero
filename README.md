@@ -13,6 +13,12 @@ A brutalist, real-time City Dashboard plots all reported hazards on a live inter
 - **Database & Auth:** Supabase (Postgres, Storage, OAuth)
 - **Styling:** Custom Neo-Brutalism (Vanilla CSS)
 
+## 🤖 Google AI Studio Integration
+As per the **Community Hero** problem statement requirements, **Google AI Studio** serves as the core tool for developing our generative AI features. 
+- **Prompt Development:** All system instructions for categorizing civic issues and verifying resolutions were developed, grounded, and tuned inside Google AI Studio.
+- **Get Code:** The optimized API configurations and prompt structures were exported using AI Studio's "Get Code" feature and integrated directly into our Next.js API routes (`/api/analyze-image` and `/api/verify-resolution`).
+- **Deployment:** The live application interfaces directly with the `generativelanguage.googleapis.com` endpoint using the API keys generated from our Google AI Studio project.
+
 ## 🚀 Quick Setup Guide
 
 ### 1. Environment Variables

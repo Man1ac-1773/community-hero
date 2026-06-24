@@ -34,8 +34,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div key={toast.id} style={{
             padding: '1.25rem 1.5rem',
             border: '3px solid black',
-            backgroundColor: toast.type === 'error' ? 'var(--primary-color)' : toast.type === 'success' ? '#00E676' : '#FFEA00',
-            color: 'white',
+            backgroundColor: toast.type === 'error' ? 'var(--primary-color)' : toast.type === 'success' ? 'var(--text-color)' : 'white',
+            color: toast.type === 'warning' ? 'var(--text-color)' : 'white',
             fontWeight: 800,
             boxShadow: '6px 6px 0px 0px #111111',
             textTransform: 'uppercase',

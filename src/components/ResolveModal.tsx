@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ToastProvider';
+import { compressImage } from '@/lib/image';
 
 export default function ResolveModal({ report, onClose, onResolved, user }: { report: any, onClose: () => void, onResolved: () => void, user: any }) {
   const [image, setImage] = useState<File | null>(null);
@@ -10,38 +11,13 @@ export default function ResolveModal({ report, onClose, onResolved, user }: { re
   const [result, setResult] = useState<{ isResolved: boolean, reasoning: string } | null>(null);
   const { showToast } = useToast();
 
-  // Basic client-side compression
-  const compressImage = (file: File): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-          } else {
-            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-          }
-          canvas.width = width; canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-            else reject(new Error('Canvas to Blob failed'));
-          }, 'image/jpeg', 0.7);
-        };
-      };
-      reader.onerror = (error) => reject(error);
-    });
-  };
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -124,8 +100,8 @@ export default function ResolveModal({ report, onClose, onResolved, user }: { re
         )}
 
         {result && (
-          <div style={{ padding: '1rem', backgroundColor: result.isResolved ? '#00E676' : 'var(--primary-color)', color: result.isResolved ? 'black' : 'white', fontWeight: 800, marginBottom: '1rem', border: '2px solid var(--border-color)' }}>
-            <div style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{result.isResolved ? '✅ VERIFIED FIXED' : '❌ REJECTED'}</div>
+          <div style={{ padding: '1rem', backgroundColor: result.isResolved ? 'white' : 'var(--primary-color)', color: result.isResolved ? 'var(--text-color)' : 'white', fontWeight: 800, marginBottom: '1rem', border: '4px solid var(--border-color)' }}>
+            <div style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{result.isResolved ? '[ VERIFIED FIXED ]' : '[ REJECTED ]'}</div>
             <div style={{ fontWeight: 600 }}>{result.reasoning}</div>
           </div>
         )}

@@ -5,8 +5,8 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
 import { useToast } from '@/components/ToastProvider';
+import { useAuth } from '@/lib/hooks';
 
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -40,22 +40,12 @@ function RecenterAutomatically({ center }: { center: [number, number] }) {
 
 export default function LiveMap({ reports, setReports }: { reports: Report[], setReports: any }) {
   const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [activeDiscussion, setActiveDiscussion] = useState<string | null>(null);
   const [resolvingReport, setResolvingReport] = useState<Report | null>(null);
   const { showToast } = useToast();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
     async function fetchReports() {
