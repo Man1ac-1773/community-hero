@@ -41,3 +41,38 @@ We needed a robust, socially-driven mechanism to prevent false resolutions while
 - A `resolvedBy` TEXT array was added to the Supabase `reports` schema.
 - The UI now features a Brutalist "RESOLUTION CONSENSUS" progress bar.
 - Once an issue's `resolvedBy` array reaches a length of 3, the status automatically flips to `RESOLVED` and the milestone is appended to the issue's Audit Timeline JSON array.
+
+---
+
+## ADR 002: EXIF Location Integrity
+
+**Status:** Accepted  
+**Date:** June 2026  
+
+### Context
+Crowdsourced mapping platforms are highly susceptible to location spoofing. A malicious user could download a photo of a pothole from the internet and pin it to a random location in the city, creating false data and wasting municipal resources.
+
+### Decision
+We implemented a client-side EXIF metadata extraction pipeline using `exifr`. Before an image is uploaded, the client attempts to extract the embedded GPS coordinates. 
+If EXIF coordinates are found, the system calculates the Haversine distance between the photo's true origin and the user's manually dropped pin on the map. If the user drags the pin more than 100 meters away from the photo's EXIF location, a prominent UI warning is triggered, forcing them to acknowledge the discrepancy or revert the pin.
+
+### Trade-offs
+* **Pros:** Drastically reduces "couch-reporting" (users submitting fake issues from home).
+* **Cons:** Images forwarded via WhatsApp or downloaded from social media are often stripped of EXIF data for privacy. The system gracefully degrades to manual pinning if no EXIF data is found, prioritizing accessibility over strict enforcement.
+
+---
+
+## ADR 003: Strict AI Schema Enforcement
+
+**Status:** Accepted  
+**Date:** June 2026  
+
+### Context
+To maintain a clean database for map filtering and heatmaps, issues must be strictly categorized (e.g., "Pothole", "Vandalism"). Originally, the prompt asked the AI nicely to pick a category, but it was prone to hallucinating new categories (e.g., "Road Defect").
+
+### Decision
+We migrated the Google Gemini 2.5 Flash implementation to use its native `responseSchema` configuration with strict `enum` types. By passing `responseMimeType: "application/json"` and a highly restrictive schema, the AI is physically prevented at the generation layer from outputting anything other than our predefined list of 15 categories.
+
+### Trade-offs
+* **Pros:** 100% database cleanliness. No need for complex regex or fallback string matching on the server.
+* **Cons:** If an edge-case issue occurs that truly doesn't fit the 15 categories, the AI is forced to awkwardly bin it into the generic "Other" category.
