@@ -130,10 +130,10 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   });
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '70vh', alignItems: 'stretch' }}>
+    <div style={{ display: 'flex', width: '100%', height: '70vh', alignItems: 'stretch', justifyContent: 'space-between' }}>
       
       {/* MAP WRAPPER */}
-      <div style={{ flexGrow: 1, position: 'relative', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', backgroundColor: 'white', overflow: 'hidden' }}>
+      <div style={{ width: 'calc(100% - 420px)', flexShrink: 0, position: 'relative', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', backgroundColor: 'white', overflow: 'hidden' }}>
       
       {/* FILTER CONTROL PANEL */}
       <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '1rem', border: '3px solid black', boxShadow: '4px 4px 0px #111' }}>
@@ -172,22 +172,22 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
       </MapContainer>
       </div>
 
-      {/* RIGHT SIDE PANEL */}
-      <div style={{
-        width: selectedReport ? '400px' : '0px',
-        marginLeft: selectedReport ? '1.5rem' : '0px',
-        opacity: selectedReport ? 1 : 0,
-        backgroundColor: 'var(--bg-color)',
-        border: selectedReport ? '2px solid var(--border-color)' : 'none',
-        boxShadow: selectedReport ? '8px 8px 0px 0px #111111' : 'none',
-        transition: 'all 0.3s ease-in-out',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        {selectedReport && (() => {
+      {/* RIGHT SIDE PANEL WRAPPER */}
+      <div style={{ width: '400px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          width: '100%',
+          height: '100%',
+          transform: selectedReport ? 'translateX(0)' : 'translateX(100%)',
+          opacity: selectedReport ? 1 : 0,
+          backgroundColor: 'var(--bg-color)',
+          border: '2px solid var(--border-color)',
+          boxShadow: selectedReport ? '8px 8px 0px 0px #111111' : 'none',
+          transition: 'all 0.3s ease-in-out',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 10
+        }}>
+          {selectedReport && (() => {
           const verifiedByVal = selectedReport.verifiedBy as any;
           const hasVerified = user && (typeof verifiedByVal === 'string' 
             ? verifiedByVal.includes(user.id) 
@@ -201,7 +201,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
           }
 
           return (
-            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '4px solid var(--border-color)' }}>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>ISSUE DETAILS</h3>
                 <button onClick={() => setSelectedReport(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', fontWeight: 800, cursor: 'pointer' }}>X</button>
@@ -259,6 +259,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
             </div>
           );
         })()}
+      </div>
       </div>
 
       {activeDiscussion && (
