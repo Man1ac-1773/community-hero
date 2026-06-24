@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { useToast } from '@/components/ToastProvider';
 
 export default function AuthNav() {
   const [user, setUser] = useState<User | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -24,7 +26,7 @@ export default function AuthNav() {
     });
     if (error) {
       console.error("Login failed:", error);
-      alert("Login Error: " + error.message);
+      showToast("Login Error: " + error.message, 'error');
     }
   };
 

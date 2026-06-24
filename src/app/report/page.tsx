@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { useToast } from '@/components/ToastProvider';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false, loading: () => <div style={{ height: '400px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>LOADING MAP...</div> });
 
@@ -13,6 +14,7 @@ export default function ReportPage() {
   const [analysis, setAnalysis] = useState<{ category: string, severity: string, description: string } | null>(null);
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -102,12 +104,12 @@ export default function ReportPage() {
         console.error("===== ANALYSIS API FAILED =====");
         console.error("HTTP Status:", res.status);
         console.error("Response Data:", data);
-        alert("Failed to analyze image: " + (data.error || JSON.stringify(data)) + "\n\nCheck browser console and terminal for details.");
+        showToast("Failed to analyze image: " + (data.error || "Unknown error"), 'error');
       }
     } catch (err: any) {
       console.error("===== NETWORK/CLIENT ERROR =====");
       console.error("Error calling API:", err);
-      alert("Error calling API: " + err.message + "\n\nCheck browser console for details.");
+      showToast("Error calling API: " + err.message, 'error');
     } finally {
       setAnalyzing(false);
     }
@@ -116,11 +118,11 @@ export default function ReportPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      alert("YOU MUST BE LOGGED IN TO SUBMIT A REPORT.");
+      showToast("YOU MUST BE LOGGED IN TO SUBMIT A REPORT.", 'warning');
       return;
     }
     if (!image || !analysis || !position) {
-      alert("PLEASE COMPLETE ALL STEPS: UPLOAD IMAGE, WAIT FOR AI ANALYSIS, AND PICK A LOCATION.");
+      showToast("PLEASE COMPLETE ALL STEPS: UPLOAD IMAGE, WAIT FOR AI ANALYSIS, AND PICK A LOCATION.", 'warning');
       return;
     }
     
@@ -157,7 +159,7 @@ export default function ReportPage() {
 
       if (dbError) throw dbError;
 
-      alert("REPORT SUBMITTED SUCCESSFULLY!");
+      showToast("REPORT SUBMITTED SUCCESSFULLY!", 'success');
       
       // Reset form
       setImage(null);
@@ -166,7 +168,7 @@ export default function ReportPage() {
       setPosition(null);
     } catch (error: any) {
       console.error("Error submitting report:", error);
-      alert("FAILED TO SUBMIT REPORT: " + error.message);
+      showToast("FAILED TO SUBMIT REPORT: " + error.message, 'error');
     }
   };
 

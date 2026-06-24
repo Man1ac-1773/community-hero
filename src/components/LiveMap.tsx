@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { useToast } from '@/components/ToastProvider';
 
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -39,6 +40,7 @@ function RecenterAutomatically({ center }: { center: [number, number] }) {
 export default function LiveMap({ reports, setReports }: { reports: Report[], setReports: any }) {
   const [center, setCenter] = useState<[number, number]>([40.7128, -74.0060]);
   const [user, setUser] = useState<User | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -84,7 +86,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
 
   const handleVerify = async (reportId: string) => {
     if (!user) {
-      alert("PLEASE LOGIN TO VERIFY REPORTS.");
+      showToast("PLEASE LOGIN TO VERIFY REPORTS.", 'warning');
       return;
     }
     try {
@@ -103,7 +105,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
       setReports((prev: Report[]) => prev.map(r => r.id === reportId ? { ...r, verifiedBy: newVerifiedBy } : r));
     } catch (err: any) {
       console.error("Error verifying:", err);
-      alert("Failed to verify: " + err.message);
+      showToast("Failed to verify: " + err.message, 'error');
     }
   };
 
@@ -115,19 +117,25 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterAutomatically center={center} />
-        {reports.map((report) => {
+        {reports.map((report, index) => {
           const hasVerified = user && report.verifiedBy?.includes(user.id);
           const verifyCount = report.verifiedBy?.length || 0;
           return (
-          <Marker key={report.id} position={[report.lat, report.lng]}>
+          <Marker key={report.id || `fallback-${index}`} position={[report.lat, report.lng]}>
             <Popup>
-              <div style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              <div style={{ fontFamily: '"Space Grotesk", sans-serif', maxWidth: '300px' }}>
                 <strong style={{ display: 'block', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: 'var(--primary-color)' }}>
                   {report.category}
                 </strong>
                 {report.imageUrl && <img src={report.imageUrl} alt="Issue" style={{ width: '100%', height: '100px', objectFit: 'cover', marginBottom: '0.5rem' }} />}
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>SEVERITY: {report.severity}</p>
-                <p style={{ margin: '0 0 0.5rem 0' }}>{report.description}</p>
+                <p style={{ 
+                  margin: '0 0 0.5rem 0',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }} title={report.description}>{report.description}</p>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap' }}>
                   <div style={{ padding: '0.25rem 0.5rem', backgroundColor: 'var(--text-color)', color: 'white', fontWeight: 700, fontSize: '0.8rem' }}>
                     {report.status}

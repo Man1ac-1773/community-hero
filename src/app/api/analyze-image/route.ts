@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     
     console.log("[API] Initializing Gemini API...");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `Analyze this civic issue image. Respond ONLY with a valid JSON object matching this exact schema, with no markdown formatting or backticks:
     {
