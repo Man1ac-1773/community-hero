@@ -78,8 +78,8 @@ export default function MapPicker({ position, setPosition, suggestedLocation }: 
   }, [suggestedLocation]);
 
   return (
-    <div style={{ height: '400px', width: '100%', position: 'relative' }}>
-      <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', border: '2px solid black' }}>
+    <div style={{ height: '400px', width: '100%', position: 'relative', zIndex: 0 }}>
+      <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', border: '2px solid black', zIndex: 1 }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
