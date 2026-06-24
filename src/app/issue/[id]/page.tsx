@@ -40,6 +40,10 @@ export default function IssuePage() {
       showToast("PLEASE LOGIN TO VERIFY REPORTS.", 'warning');
       return;
     }
+    if (report.userId === user.id) {
+      showToast("You cannot verify your own reported issue.", 'warning');
+      return;
+    }
     try {
       let currentVerified: string[] = [];
       if (typeof report.verifiedBy === 'string') {
@@ -159,7 +163,7 @@ export default function IssuePage() {
           <div style={{ marginTop: 'auto' }}>
             {user && (
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                {!hasVerified && (
+                {!hasVerified && report.userId !== user.id && (
                   <button 
                     onClick={handleVerify}
                     className="btn-primary"
