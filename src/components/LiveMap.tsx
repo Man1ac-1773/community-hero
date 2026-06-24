@@ -55,7 +55,7 @@ function HeatmapLayer({ reports }: { reports: Report[] }) {
       radius: 25,
       blur: 15,
       maxZoom: 17,
-      gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
+      gradient: { 0.4: '#fca5a5', 0.6: '#ef4444', 0.8: '#b91c1c', 1.0: '#7f1d1d' }
     }).addTo(map);
 
     return () => {
