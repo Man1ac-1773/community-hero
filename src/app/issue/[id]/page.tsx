@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import DiscussionBoard from '@/components/DiscussionBoard';
-import ResolveModal from '@/components/ResolveModal';
 import html2canvas from 'html2canvas';
 import Link from 'next/link';
 import { useToast } from '@/components/ToastProvider';
@@ -17,7 +16,6 @@ export default function IssuePage() {
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const [resolving, setResolving] = useState(false);
   const { showToast } = useToast();
   const shareCardRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +104,44 @@ export default function IssuePage() {
     }
   };
 
+  const handleConfirmResolution = async () => {
+    if (!user) {
+      showToast("PLEASE LOGIN TO CONFIRM RESOLUTION.", 'warning');
+      return;
+    }
+    try {
+      const currentResolvedBy = Array.isArray(report.resolvedBy) ? report.resolvedBy : [];
+      if (currentResolvedBy.includes(user.id)) return;
+
+      const newResolvedBy = [...currentResolvedBy, user.id];
+      const isNowResolved = newResolvedBy.length >= 3;
+      const newStatus = isNowResolved ? 'RESOLVED' : 'OPEN';
+      
+      const newHistory = [...(report.history || []), { 
+        type: isNowResolved ? "RESOLVED" : "RESOLUTION_VOTE", 
+        timestamp: new Date().toISOString(), 
+        user: user.id 
+      }];
+
+      const { error } = await supabase
+        .from('reports')
+        .update({ resolvedBy: newResolvedBy, status: newStatus, history: newHistory })
+        .eq('id', report.id);
+        
+      if (error) throw error;
+      
+      setReport({ ...report, resolvedBy: newResolvedBy, status: newStatus, history: newHistory });
+      
+      if (isNowResolved) {
+        showToast("Community consensus reached! Issue is now officially RESOLVED.", "success");
+      } else {
+        showToast(`Vote recorded! ${3 - newResolvedBy.length} more vote(s) needed.`, "success");
+      }
+    } catch (err) {
+      showToast("Failed to confirm resolution.", "error");
+    }
+  };
+
   if (loading) return <h2 style={{ textAlign: 'center', padding: '4rem' }}>LOADING ISSUE DETAILS...</h2>;
   if (!report) return <h2 style={{ textAlign: 'center', padding: '4rem' }}>ISSUE NOT FOUND.</h2>;
 
@@ -184,9 +220,23 @@ export default function IssuePage() {
             )}
             
             {report.status === 'OPEN' && (
-              <button onClick={() => setResolving(true)} className="btn-primary" style={{ marginTop: '1rem', width: '100%', padding: '1rem', backgroundColor: 'var(--text-color)', border: '4px solid var(--border-color)', color: 'white', fontWeight: 800, fontSize: '1.2rem', cursor: 'pointer' }}>
-                MARK AS RESOLVED
-              </button>
+              <div style={{ marginTop: '1rem', border: '4px solid var(--border-color)', padding: '1rem', backgroundColor: 'var(--bg-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', fontWeight: 800 }}>
+                  <span>RESOLUTION CONSENSUS</span>
+                  <span>{Array.isArray(report.resolvedBy) ? report.resolvedBy.length : 0} / 3 REQUIRED</span>
+                </div>
+                <div style={{ width: '100%', height: '10px', backgroundColor: 'white', border: '2px solid black', marginBottom: '1rem' }}>
+                  <div style={{ height: '100%', backgroundColor: 'var(--primary-color)', width: `${Math.min(((Array.isArray(report.resolvedBy) ? report.resolvedBy.length : 0) / 3) * 100, 100)}%` }}></div>
+                </div>
+                <button 
+                  onClick={handleConfirmResolution} 
+                  disabled={user && Array.isArray(report.resolvedBy) && report.resolvedBy.includes(user.id)}
+                  className="btn-primary" 
+                  style={{ width: '100%', padding: '1rem', backgroundColor: 'var(--text-color)', border: '4px solid var(--border-color)', color: 'white', fontWeight: 800, fontSize: '1.2rem', cursor: 'pointer', opacity: (user && Array.isArray(report.resolvedBy) && report.resolvedBy.includes(user.id)) ? 0.5 : 1 }}
+                >
+                  {(user && Array.isArray(report.resolvedBy) && report.resolvedBy.includes(user.id)) ? 'RESOLUTION VOTE CAST' : 'VOTE TO RESOLVE ISSUE'}
+                </button>
+              </div>
             )}
 
             {user && (
@@ -220,17 +270,6 @@ export default function IssuePage() {
           <DiscussionBoard reportId={report.id} user={user} />
         </div>
       </div>
-
-      {resolving && (
-        <ResolveModal 
-          report={report}
-          user={user}
-          onClose={() => setResolving(false)}
-          onResolved={() => {
-            setReport({ ...report, status: 'RESOLVED' });
-          }}
-        />
-      )}
 
       {/* Hidden Share Card for html2canvas */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
