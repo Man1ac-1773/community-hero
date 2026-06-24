@@ -130,7 +130,10 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   });
 
   return (
-    <div style={{ height: '70vh', width: '100%', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', zIndex: 0, position: 'relative', backgroundColor: 'white', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', width: '100%', height: '70vh', alignItems: 'stretch' }}>
+      
+      {/* MAP WRAPPER */}
+      <div style={{ flexGrow: 1, position: 'relative', border: '2px solid var(--border-color)', boxShadow: '8px 8px 0px 0px #111111', backgroundColor: 'white', overflow: 'hidden' }}>
       
       {/* FILTER CONTROL PANEL */}
       <div style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: 'var(--bg-color)', padding: '1rem', border: '3px solid black', boxShadow: '4px 4px 0px #111' }}>
@@ -167,22 +170,22 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
           );
         })}
       </MapContainer>
+      </div>
 
       {/* RIGHT SIDE PANEL */}
       <div style={{
-        position: 'absolute',
-        top: 0,
-        right: selectedReport ? 0 : '-420px',
-        width: '400px',
-        maxWidth: '100%',
-        height: '100%',
+        width: selectedReport ? '400px' : '0px',
+        marginLeft: selectedReport ? '1.5rem' : '0px',
+        opacity: selectedReport ? 1 : 0,
         backgroundColor: 'var(--bg-color)',
-        borderLeft: '4px solid var(--border-color)',
-        zIndex: 1001,
-        transition: 'right 0.3s ease-in-out',
+        border: selectedReport ? '2px solid var(--border-color)' : 'none',
+        boxShadow: selectedReport ? '8px 8px 0px 0px #111111' : 'none',
+        transition: 'all 0.3s ease-in-out',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: selectedReport ? '-8px 0px 0px 0px rgba(0,0,0,0.2)' : 'none'
+        overflow: 'hidden',
+        position: 'relative',
+        zIndex: 10
       }}>
         {selectedReport && (() => {
           const verifiedByVal = selectedReport.verifiedBy as any;
@@ -198,7 +201,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
           }
 
           return (
-            <>
+            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderBottom: '4px solid var(--border-color)' }}>
                 <h3 style={{ margin: 0, fontSize: '1.2rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>ISSUE DETAILS</h3>
                 <button onClick={() => setSelectedReport(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', fontWeight: 800, cursor: 'pointer' }}>X</button>
@@ -253,7 +256,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
                   )}
                 </div>
               </div>
-            </>
+            </div>
           );
         })()}
       </div>
