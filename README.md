@@ -39,6 +39,14 @@ For a deep dive into how this platform is built, see our documentation suite:
 ## Running Locally
 
 1. Clone the repository.
-2. Install dependencies: `npm install`
-3. Setup `.env.local` with your Supabase and Gemini keys.
-4. Run the development server: `npm run dev`
+2. Set up your Supabase project:
+   - Create a new project on [Supabase](https://supabase.com).
+   - Go to the SQL Editor and paste the contents of `database.sql` to generate the tables, RLS policies, and Storage buckets.
+3. Install dependencies: `npm install`
+4. Setup `.env.local` with your Supabase and Gemini keys:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
+5. Run the development server: `npm run dev`
