@@ -26,6 +26,7 @@ export default function RootLayout({
               <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <Link href="/report" className="nav-link">Report Issue</Link>
                 <Link href="/map" className="nav-link">Live Map</Link>
+                <Link href="/leaderboard" className="nav-link">Leaderboard</Link>
                 <AuthNav />
               </nav>
             </div>
