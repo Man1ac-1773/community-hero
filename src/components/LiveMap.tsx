@@ -6,6 +6,7 @@ import L from 'leaflet';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { useToast } from '@/components/ToastProvider';
+import DiscussionModal from '@/components/DiscussionModal';
 
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -42,6 +43,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   const [user, setUser] = useState<User | null>(null);
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [activeDiscussion, setActiveDiscussion] = useState<string | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -173,19 +175,35 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
                   )}
                 </div>
                 
-                {user && report.userId !== user.id && !hasVerified && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  {user && report.userId !== user.id && !hasVerified && (
+                    <button 
+                      onClick={() => handleVerify(report.id)}
+                      style={{ flexGrow: 1, padding: '0.5rem', backgroundColor: 'transparent', border: '2px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      VERIFY
+                    </button>
+                  )}
                   <button 
-                    onClick={() => handleVerify(report.id)}
-                    style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', backgroundColor: 'transparent', border: '2px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 700, cursor: 'pointer' }}
+                    onClick={() => setActiveDiscussion(report.id)}
+                    style={{ flexGrow: 1, padding: '0.5rem', backgroundColor: 'var(--text-color)', border: '2px solid var(--border-color)', color: 'white', fontWeight: 700, cursor: 'pointer' }}
                   >
-                    VERIFY ISSUE
+                    DISCUSS
                   </button>
-                )}
+                </div>
               </div>
             </Popup>
           </Marker>
         )})}
       </MapContainer>
+
+      {activeDiscussion && (
+        <DiscussionModal 
+          reportId={activeDiscussion} 
+          user={user} 
+          onClose={() => setActiveDiscussion(null)} 
+        />
+      )}
     </div>
   );
 }
