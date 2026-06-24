@@ -41,10 +41,11 @@ export default function ProfilePage() {
         if (myData) setMyReports(myData as Report[]);
 
         // Fetch reports verified by the user
+        // Using ilike because verifiedBy might be stored as a text string (JSON) instead of array in the user's DB
         const { data: verifiedData } = await supabase
           .from('reports')
           .select('*')
-          .contains('verifiedBy', [currentUser.id])
+          .ilike('verifiedBy', `%${currentUser.id}%`)
           .order('created_at', { ascending: false });
 
         if (verifiedData) setVerifiedReports(verifiedData as Report[]);

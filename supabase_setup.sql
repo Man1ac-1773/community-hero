@@ -39,12 +39,12 @@ $$;
 -- 5. Create the comments table for Discussion Threads
 CREATE TABLE IF NOT EXISTS public.comments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    "reportId" UUID REFERENCES public.reports(id) ON DELETE CASCADE,
+    "reportId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "userName" TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 6. Disable RLS for comments for hackathon MVP
+-- 6. Disable RLS for comments 
 ALTER TABLE public.comments DISABLE ROW LEVEL SECURITY;

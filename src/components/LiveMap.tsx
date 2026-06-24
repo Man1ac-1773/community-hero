@@ -98,8 +98,15 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
     try {
       const report = reports.find(r => r.id === reportId);
       if (!report) return;
+
+      let currentVerified: string[] = [];
+      if (typeof report.verifiedBy === 'string') {
+        try { currentVerified = JSON.parse(report.verifiedBy); } catch(e) {}
+      } else if (Array.isArray(report.verifiedBy)) {
+        currentVerified = report.verifiedBy;
+      }
       
-      const newVerifiedBy = [...(report.verifiedBy || []), user.id];
+      const newVerifiedBy = [...currentVerified, user.id];
       
       const { error } = await supabase
         .from('reports')
