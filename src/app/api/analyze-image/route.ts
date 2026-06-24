@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       properties: {
         category: {
           type: SchemaType.STRING,
-          enum: ["Pothole", "Broken Streetlight", "Illegal Dumping", "Vandalism", "Water Leak", "Traffic Signal Issue", "Overgrown Vegetation", "Other"],
+          enum: ["Pothole", "Broken Streetlight", "Illegal Dumping", "Vandalism", "Water Leak", "Traffic Signal Issue", "Overgrown Vegetation", "Sidewalk Damage", "Graffiti", "Fallen Tree", "Drainage Issue", "Abandoned Vehicle", "Litter", "Utility Line Down", "Other"],
           format: "enum",
           description: "The category that best describes the issue in the image."
         },
