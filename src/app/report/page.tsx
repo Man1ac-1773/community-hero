@@ -124,7 +124,8 @@ export default function ReportPage() {
             status: 'OPEN',
             userId: user.id,
             userName: user.user_metadata?.full_name || 'Anonymous',
-            verifiedBy: []
+            verifiedBy: [],
+            history: [{ type: "REPORTED", timestamp: new Date().toISOString(), user: user.id }]
           }
         ]);
 

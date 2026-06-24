@@ -49,14 +49,16 @@ export default function IssuePage() {
       }
       
       const newVerifiedBy = [...currentVerified, user.id];
-
+      const newHistory = [...(report.history || []), { type: "VERIFIED", timestamp: new Date().toISOString(), user: user.id }];
+      
       const { error } = await supabase
         .from('reports')
-        .update({ verifiedBy: newVerifiedBy })
+        .update({ verifiedBy: newVerifiedBy, history: newHistory })
         .eq('id', report.id);
         
       if (error) throw error;
-      setReport({ ...report, verifiedBy: newVerifiedBy });
+      
+      setReport({ ...report, verifiedBy: newVerifiedBy, history: newHistory });
       showToast("Verification added!", 'success');
     } catch (err: any) {
       showToast("Unable to log your verification at the moment.", 'error');
@@ -76,6 +78,27 @@ export default function IssuePage() {
     } catch (err) {
       console.error(err);
       showToast("Failed to generate shareable card.", "error");
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!user) {
+      showToast("PLEASE LOGIN TO SUBSCRIBE.", 'warning');
+      return;
+    }
+    try {
+      const currentSubscribers = Array.isArray(report.subscribers) ? report.subscribers : [];
+      if (currentSubscribers.includes(user.id)) {
+        showToast("You are already subscribed to this issue.", "warning");
+        return;
+      }
+      const newSubscribers = [...currentSubscribers, user.id];
+      const { error } = await supabase.from('reports').update({ subscribers: newSubscribers }).eq('id', report.id);
+      if (error) throw error;
+      setReport({ ...report, subscribers: newSubscribers });
+      showToast("Subscribed! You will be notified when this is resolved.", "success");
+    } catch (err) {
+      showToast("Failed to subscribe.", "error");
     }
   };
 
@@ -161,7 +184,31 @@ export default function IssuePage() {
                 MARK AS RESOLVED
               </button>
             )}
+
+            {user && (
+              <button onClick={handleSubscribe} className="btn-secondary" style={{ marginTop: '1rem', width: '100%', padding: '0.75rem', backgroundColor: 'transparent', border: '3px solid var(--border-color)', color: 'var(--text-color)', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', opacity: (Array.isArray(report.subscribers) && report.subscribers.includes(user.id)) ? 0.5 : 1 }}>
+                {(Array.isArray(report.subscribers) && report.subscribers.includes(user.id)) ? 'SUBSCRIBED TO UPDATES' : 'SUBSCRIBE TO UPDATES'}
+              </button>
+            )}
           </div>
+          
+          {/* AUDIT TIMELINE */}
+          {report.history && report.history.length > 0 && (
+            <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'white', border: '4px solid var(--border-color)' }}>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', textTransform: 'uppercase' }}>AUDIT TIMELINE</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {report.history.map((event: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: event.type === 'RESOLVED' ? 'var(--primary-color)' : 'black' }}></div>
+                    <div style={{ flexGrow: 1 }}>
+                      <div style={{ fontWeight: 800 }}>{event.type}</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#666' }}>{new Date(event.timestamp).toLocaleString()}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: DISCUSSION */}

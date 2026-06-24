@@ -57,7 +57,8 @@ export default function ResolveModal({ report, onClose, onResolved, user }: { re
       if (res.ok) {
         setResult(data);
         if (data.isResolved) {
-          const { error } = await supabase.from('reports').update({ status: 'RESOLVED' }).eq('id', report.id);
+          const newHistory = [...(report.history || []), { type: "RESOLVED", timestamp: new Date().toISOString(), user: user.id }];
+          const { error } = await supabase.from('reports').update({ status: 'RESOLVED', history: newHistory }).eq('id', report.id);
           if (error) throw error;
           showToast("ISSUE OFFICIALLY RESOLVED!", 'success');
           setTimeout(() => {

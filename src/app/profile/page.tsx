@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [myReports, setMyReports] = useState<Report[]>([]);
   const [verifiedReports, setVerifiedReports] = useState<Report[]>([]);
+  const [subscribedReports, setSubscribedReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,6 +49,16 @@ export default function ProfilePage() {
 
         if (verifiedData) setVerifiedReports(verifiedData as Report[]);
         if (vError) console.error("Verified reports error:", vError);
+
+        // Fetch subscribed reports
+        const { data: subData, error: subError } = await supabase
+          .from('reports')
+          .select('*')
+          .contains('subscribers', [currentUser.id])
+          .eq('status', 'RESOLVED');
+          
+        if (subData) setSubscribedReports(subData as Report[]);
+        if (subError) console.error("Subscribed reports error:", subError);
       }
       setLoading(false);
     }
@@ -140,6 +151,27 @@ export default function ProfilePage() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+        <section>
+          <h2 style={{ fontSize: '2.5rem', marginBottom: '2rem', borderBottom: '4px solid var(--border-color)', paddingBottom: '0.5rem', display: 'inline-block' }}>NOTIFICATIONS</h2>
+          {subscribedReports.length === 0 ? (
+            <p style={{ fontWeight: 600, fontSize: '1.2rem', color: '#666' }}>No new notifications. Subscribe to active issues to get updates when they are resolved!</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {subscribedReports.map(report => (
+                <div key={report.id} style={{ padding: '1.5rem', backgroundColor: 'var(--primary-color)', color: 'white', border: '4px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ margin: 0, textTransform: 'uppercase', fontSize: '1.5rem' }}>🎉 {report.category} RESOLVED</h3>
+                    <p style={{ margin: '0.5rem 0 0 0', fontWeight: 600 }}>An issue you were tracking has been successfully resolved.</p>
+                  </div>
+                  <Link href={`/issue/${report.id}`}>
+                    <button className="btn-secondary" style={{ padding: '0.75rem 1.5rem', border: '2px solid var(--border-color)', fontWeight: 800 }}>VIEW</button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section>
           <h2 style={{ fontSize: '2.5rem', marginBottom: '2rem', borderBottom: '4px solid var(--border-color)', paddingBottom: '0.5rem', display: 'inline-block' }}>MY SUBMISSIONS</h2>
           <ReportGrid reports={myReports} />
