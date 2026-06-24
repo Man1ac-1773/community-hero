@@ -26,7 +26,7 @@ export default function AuthNav() {
     });
     if (error) {
       console.error("Login failed:", error);
-      showToast("Login Error: " + error.message, 'error');
+      showToast("Unable to securely log in. Please try again.", 'error');
     }
   };
 

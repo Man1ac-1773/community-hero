@@ -104,12 +104,12 @@ export default function ReportPage() {
         console.error("===== ANALYSIS API FAILED =====");
         console.error("HTTP Status:", res.status);
         console.error("Response Data:", data);
-        showToast("Failed to analyze image: " + (data.error || "Unknown error"), 'error');
+        showToast("AI analysis couldn't complete. Please try uploading the image again.", 'error');
       }
     } catch (err: any) {
       console.error("===== NETWORK/CLIENT ERROR =====");
       console.error("Error calling API:", err);
-      showToast("Error calling API: " + err.message, 'error');
+      showToast("Network issue connecting to our AI server. Please check your connection.", 'error');
     } finally {
       setAnalyzing(false);
     }
@@ -168,7 +168,7 @@ export default function ReportPage() {
       setPosition(null);
     } catch (error: any) {
       console.error("Error submitting report:", error);
-      showToast("FAILED TO SUBMIT REPORT: " + error.message, 'error');
+      showToast("We couldn't save your report this time. Please try again.", 'error');
     }
   };
 

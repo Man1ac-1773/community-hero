@@ -105,7 +105,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
       setReports((prev: Report[]) => prev.map(r => r.id === reportId ? { ...r, verifiedBy: newVerifiedBy } : r));
     } catch (err: any) {
       console.error("Error verifying:", err);
-      showToast("Failed to verify: " + err.message, 'error');
+      showToast("Unable to log your verification at the moment.", 'error');
     }
   };
 
