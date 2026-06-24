@@ -1,10 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { auth } from '@/lib/firebase';
-import { User } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
 
-// Dynamically import map component to avoid SSR issues with Leaflet
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false, loading: () => <div style={{ height: '400px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>LOADING MAP...</div> });
 
 export default function ReportPage() {
@@ -16,38 +15,101 @@ export default function ReportPage() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
-    return () => unsubscribe();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+            } else {
+              reject(new Error('Canvas to Blob failed'));
+            }
+          }, 'image/jpeg', 0.7);
+        };
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      
-      // Trigger AI Analysis
-      setAnalyzing(true);
-      const formData = new FormData();
-      formData.append('image', file);
-
       try {
-        const res = await fetch('/api/analyze-image', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setAnalysis(data);
-        } else {
-          console.error("Analysis failed:", data);
-          alert("Failed to analyze image.");
-        }
+        const compressedFile = await compressImage(file);
+        setImage(compressedFile);
+        setPreviewUrl(URL.createObjectURL(compressedFile));
       } catch (err) {
-        console.error("Error calling API:", err);
-      } finally {
-        setAnalyzing(false);
+        console.error("Compression failed:", err);
+        setImage(file);
+        setPreviewUrl(URL.createObjectURL(file));
       }
+      setAnalysis(null);
+    }
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!image) return;
+    setAnalyzing(true);
+    const formData = new FormData();
+    formData.append('image', image);
+
+    try {
+      const res = await fetch('/api/analyze-image', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAnalysis(data);
+      } else {
+        console.error("===== ANALYSIS API FAILED =====");
+        console.error("HTTP Status:", res.status);
+        console.error("Response Data:", data);
+        alert("Failed to analyze image: " + (data.error || JSON.stringify(data)) + "\n\nCheck browser console and terminal for details.");
+      }
+    } catch (err: any) {
+      console.error("===== NETWORK/CLIENT ERROR =====");
+      console.error("Error calling API:", err);
+      alert("Error calling API: " + err.message + "\n\nCheck browser console for details.");
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -63,29 +125,37 @@ export default function ReportPage() {
     }
     
     try {
-      // Dynamically import to keep it clean on client
-      const { db, storage } = await import('@/lib/firebase');
-      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
-      const { collection, addDoc } = await import('firebase/firestore');
+      // 1. Upload to Supabase Storage
+      const fileName = `${Date.now()}_${image.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('reports')
+        .upload(fileName, image);
 
-      // 1. Upload to Storage
-      const storageRef = ref(storage, `reports/${Date.now()}_${image.name}`);
-      await uploadBytes(storageRef, image);
-      const downloadURL = await getDownloadURL(storageRef);
+      if (uploadError) throw uploadError;
 
-      // 2. Save to Firestore
-      await addDoc(collection(db, 'reports'), {
-        imageUrl: downloadURL,
-        category: analysis.category,
-        severity: analysis.severity,
-        description: analysis.description,
-        lat: position[0],
-        lng: position[1],
-        status: 'OPEN',
-        timestamp: new Date().toISOString(),
-        userId: user.uid,
-        userName: user.displayName || 'Anonymous'
-      });
+      const { data: { publicUrl } } = supabase.storage
+        .from('reports')
+        .getPublicUrl(fileName);
+
+      // 2. Save to Supabase DB
+      const { error: dbError } = await supabase
+        .from('reports')
+        .insert([
+          {
+            imageUrl: publicUrl,
+            category: analysis.category,
+            severity: analysis.severity,
+            description: analysis.description,
+            lat: position[0],
+            lng: position[1],
+            status: 'OPEN',
+            userId: user.id,
+            userName: user.user_metadata?.full_name || 'Anonymous',
+            verifiedBy: []
+          }
+        ]);
+
+      if (dbError) throw dbError;
 
       alert("REPORT SUBMITTED SUCCESSFULLY!");
       
@@ -94,9 +164,9 @@ export default function ReportPage() {
       setPreviewUrl(null);
       setAnalysis(null);
       setPosition(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting report:", error);
-      alert("FAILED TO SUBMIT REPORT. CHECK CONSOLE.");
+      alert("FAILED TO SUBMIT REPORT: " + error.message);
     }
   };
 
@@ -113,7 +183,6 @@ export default function ReportPage() {
       
       <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '3rem', opacity: user ? 1 : 0.5, pointerEvents: user ? 'auto' : 'none' }}>
         
-        {/* Left Column: Image & Analysis */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="brutalist-panel">
             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>1 / UPLOAD PHOTO</h3>
@@ -124,7 +193,17 @@ export default function ReportPage() {
               style={{ padding: '1rem', border: '2px solid var(--border-color)', width: '100%', cursor: 'pointer', backgroundColor: '#f0f0f0', fontWeight: 600 }} 
             />
             {previewUrl && (
-              <img src={previewUrl} alt="Preview" style={{ width: '100%', height: 'auto', marginTop: '1.5rem', border: '2px solid var(--border-color)' }} />
+              <>
+                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: 'auto', marginTop: '1.5rem', border: '2px solid var(--border-color)' }} />
+                <button 
+                  type="button" 
+                  onClick={handleAnalyzeImage} 
+                  disabled={analyzing}
+                  className="btn-secondary" 
+                  style={{ width: '100%', marginTop: '1rem', padding: '1rem', fontSize: '1rem', border: '2px solid var(--border-color)', boxShadow: '4px 4px 0px 0px #111111' }}>
+                  {analyzing ? 'ANALYZING...' : 'RUN AI ANALYSIS'}
+                </button>
+              </>
             )}
           </div>
 
@@ -153,7 +232,6 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* Right Column: Map & Submit */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="brutalist-panel" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem' }}>3 / PIN LOCATION</h3>

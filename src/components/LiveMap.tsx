@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { auth } from '@/lib/firebase';
-import { User } from 'firebase/auth';
+import { supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -17,14 +17,13 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 interface Report {
   id: string;
-  image: string;
+  imageUrl: string;
   category: string;
   severity: string;
   description: string;
   lat: number;
   lng: number;
   status: string;
-  timestamp: string;
   verifiedBy?: string[];
   userId?: string;
 }
@@ -42,21 +41,22 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
-    return () => unsubscribe();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     async function fetchReports() {
       try {
-        const { db } = await import('@/lib/firebase');
-        const { collection, getDocs } = await import('firebase/firestore');
-        const querySnapshot = await getDocs(collection(db, 'reports'));
-        const savedReports: Report[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          savedReports.push({ id: doc.id, ...data } as unknown as Report);
-        });
+        const { data, error } = await supabase.from('reports').select('*');
+        if (error) throw error;
+        
+        const savedReports = data as Report[];
         setReports(savedReports);
 
         if (navigator.geolocation) {
@@ -88,17 +88,22 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
       return;
     }
     try {
-      const { db } = await import('@/lib/firebase');
-      const { doc, updateDoc, arrayUnion } = await import('firebase/firestore');
-      const reportRef = doc(db, 'reports', reportId);
-      await updateDoc(reportRef, {
-        verifiedBy: arrayUnion(user.uid)
-      });
-      // Optimistic update
-      setReports((prev: Report[]) => prev.map(r => r.id === reportId ? { ...r, verifiedBy: [...(r.verifiedBy || []), user.uid] } : r));
-    } catch (err) {
+      const report = reports.find(r => r.id === reportId);
+      if (!report) return;
+      
+      const newVerifiedBy = [...(report.verifiedBy || []), user.id];
+      
+      const { error } = await supabase
+        .from('reports')
+        .update({ verifiedBy: newVerifiedBy })
+        .eq('id', reportId);
+        
+      if (error) throw error;
+      
+      setReports((prev: Report[]) => prev.map(r => r.id === reportId ? { ...r, verifiedBy: newVerifiedBy } : r));
+    } catch (err: any) {
       console.error("Error verifying:", err);
-      alert("Failed to verify. Check console.");
+      alert("Failed to verify: " + err.message);
     }
   };
 
@@ -111,7 +116,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
         />
         <RecenterAutomatically center={center} />
         {reports.map((report) => {
-          const hasVerified = user && report.verifiedBy?.includes(user.uid);
+          const hasVerified = user && report.verifiedBy?.includes(user.id);
           const verifyCount = report.verifiedBy?.length || 0;
           return (
           <Marker key={report.id} position={[report.lat, report.lng]}>
@@ -120,6 +125,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
                 <strong style={{ display: 'block', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: 'var(--primary-color)' }}>
                   {report.category}
                 </strong>
+                {report.imageUrl && <img src={report.imageUrl} alt="Issue" style={{ width: '100%', height: '100px', objectFit: 'cover', marginBottom: '0.5rem' }} />}
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>SEVERITY: {report.severity}</p>
                 <p style={{ margin: '0 0 0.5rem 0' }}>{report.description}</p>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap' }}>
@@ -133,7 +139,7 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
                   )}
                 </div>
                 
-                {user && report.userId !== user.uid && !hasVerified && (
+                {user && report.userId !== user.id && !hasVerified && (
                   <button 
                     onClick={() => handleVerify(report.id)}
                     style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', backgroundColor: 'transparent', border: '2px solid var(--primary-color)', color: 'var(--primary-color)', fontWeight: 700, cursor: 'pointer' }}

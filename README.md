@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CIVIC WATCH 🏙️
 
-## Getting Started
+An open-source, AI-powered platform for community issue tracking. Built for the **Vibe2Ship Hackathon**.
 
-First, run the development server:
+## Overview
+Civic Watch empowers citizens to report urban issues (potholes, broken streetlights, illegal dumping) in real-time. Simply snap a photo, and the integrated **Google Gemini AI** automatically categorizes the issue and assesses its severity. 
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+A brutalist, real-time City Dashboard plots all reported hazards on a live interactive map, allowing citizens to "verify" issues to crowdsource urgency and impact.
+
+## Tech Stack
+- **Frontend:** Next.js (App Router), React, Leaflet Maps
+- **AI Core:** Google Gemini 3.5 Flash (Vision API)
+- **Database & Auth:** Supabase (Postgres, Storage, OAuth)
+- **Styling:** Custom Neo-Brutalism (Vanilla CSS)
+
+## 🚀 Quick Setup Guide
+
+### 1. Environment Variables
+Clone the repository and create a `.env.local` file in the root directory with the following keys:
+```env
+GEMINI_API_KEY=your_gemini_api_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Supabase Backend Setup
+You don't need to manually configure tables, storage buckets, or RLS policies. We've provided a single SQL script that builds the entire backend for you.
+1. Go to your Supabase project's **SQL Editor**.
+2. Open `docs/supabase_setup.sql` from this repository.
+3. Copy the contents, paste it into the Supabase SQL Editor, and click **Run**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+*This script instantly creates the `reports` table, configures the storage bucket, and disables RLS for easy hackathon MVP testing.*
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Run Locally
+```bash
+npm install
+npm run dev
+```
+Visit `http://localhost:3000` to start reporting issues!
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Hackathon Features
+- **AI Triage:** Instant severity assessment using Gemini Vision.
+- **Geolocation:** Automatic map routing using the browser's `navigator.geolocation` API.
+- **Gamification & Impact:** Real-time dashboards calculating community verified issues and critical hazards.
