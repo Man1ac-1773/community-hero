@@ -64,8 +64,12 @@ export default function ReportPage() {
     formData.append('image', image);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const res = await fetch('/api/analyze-image', {
         method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
       });
       const data = await res.json();

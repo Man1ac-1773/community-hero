@@ -48,27 +48,17 @@ export default function IssuePage() {
       return;
     }
     try {
-      let currentVerified: string[] = [];
-      if (typeof report.verifiedBy === 'string') {
-        try { currentVerified = JSON.parse(report.verifiedBy); } catch(e){}
-      } else if (Array.isArray(report.verifiedBy)) {
-        currentVerified = report.verifiedBy;
-      }
+      const { error } = await supabase.rpc('verify_report', { report_id: report.id });
+      if (error) throw error;
       
+      const currentVerified = Array.isArray(report.verifiedBy) ? report.verifiedBy : [];
       const newVerifiedBy = [...currentVerified, user.id];
       const newHistory = [...(report.history || []), { type: "VERIFIED", timestamp: new Date().toISOString(), user: user.id }];
       
-      const { error } = await supabase
-        .from('reports')
-        .update({ verifiedBy: newVerifiedBy, history: newHistory })
-        .eq('id', report.id);
-        
-      if (error) throw error;
-      
       setReport({ ...report, verifiedBy: newVerifiedBy, history: newHistory });
-      showToast("Verification added!", 'success');
-    } catch (err: any) {
-      showToast("Unable to log your verification at the moment.", 'error');
+      showToast("Issue successfully verified!", "success");
+    } catch (err) {
+      showToast("Failed to verify issue.", "error");
     }
   };
 
@@ -94,15 +84,11 @@ export default function IssuePage() {
       return;
     }
     try {
-      const currentSubscribers = Array.isArray(report.subscribers) ? report.subscribers : [];
-      if (currentSubscribers.includes(user.id)) {
-        showToast("You are already subscribed to this issue.", "warning");
-        return;
-      }
-      const newSubscribers = [...currentSubscribers, user.id];
-      const { error } = await supabase.from('reports').update({ subscribers: newSubscribers }).eq('id', report.id);
+      const { error } = await supabase.rpc('subscribe_report', { report_id: report.id });
       if (error) throw error;
-      setReport({ ...report, subscribers: newSubscribers });
+      
+      const currentSubscribers = Array.isArray(report.subscribers) ? report.subscribers : [];
+      setReport({ ...report, subscribers: [...currentSubscribers, user.id] });
       showToast("Subscribed! You will be notified when this is resolved.", "success");
     } catch (err) {
       showToast("Failed to subscribe.", "error");
@@ -115,9 +101,10 @@ export default function IssuePage() {
       return;
     }
     try {
+      const { error } = await supabase.rpc('resolve_report', { report_id: report.id });
+      if (error) throw error;
+      
       const currentResolvedBy = Array.isArray(report.resolvedBy) ? report.resolvedBy : [];
-      if (currentResolvedBy.includes(user.id)) return;
-
       const newResolvedBy = [...currentResolvedBy, user.id];
       const isNowResolved = newResolvedBy.length >= 3;
       const newStatus = isNowResolved ? 'RESOLVED' : 'OPEN';
@@ -125,16 +112,9 @@ export default function IssuePage() {
       const newHistory = [...(report.history || []), { 
         type: isNowResolved ? "RESOLVED" : "RESOLUTION_VOTE", 
         timestamp: new Date().toISOString(), 
-        user: user.id 
+        user: isNowResolved ? "SYSTEM" : user.id 
       }];
 
-      const { error } = await supabase
-        .from('reports')
-        .update({ resolvedBy: newResolvedBy, status: newStatus, history: newHistory })
-        .eq('id', report.id);
-        
-      if (error) throw error;
-      
       setReport({ ...report, resolvedBy: newResolvedBy, status: newStatus, history: newHistory });
       
       if (isNowResolved) {

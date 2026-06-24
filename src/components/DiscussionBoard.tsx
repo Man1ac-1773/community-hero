@@ -5,9 +5,9 @@ import { useToast } from '@/components/ToastProvider';
 
 interface Comment {
   id: string;
-  reportId: string;
-  userId: string;
-  userName: string;
+  report_id: string;
+  user_id: string;
+  user_name: string;
   content: string;
   created_at: string;
 }
@@ -23,7 +23,7 @@ export default function DiscussionBoard({ reportId, user }: { reportId: string, 
       const { data } = await supabase
         .from('comments')
         .select('*')
-        .eq('reportId', reportId)
+        .eq('report_id', reportId)
         .order('created_at', { ascending: true });
       if (data) setComments(data as Comment[]);
       setLoading(false);
@@ -43,9 +43,9 @@ export default function DiscussionBoard({ reportId, user }: { reportId: string, 
       const { data, error } = await supabase
         .from('comments')
         .insert([{
-          reportId,
-          userId: user.id,
-          userName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Citizen',
+          report_id: reportId,
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Citizen',
           content: newComment.trim()
         }])
         .select();
@@ -71,8 +71,8 @@ export default function DiscussionBoard({ reportId, user }: { reportId: string, 
             <p style={{ color: '#888', fontWeight: 600 }}>NO COMMENTS YET. BE THE FIRST TO WEIGH IN.</p>
           ) : (
             comments.map(c => (
-              <div key={c.id} style={{ padding: '1rem', border: '2px solid var(--border-color)', backgroundColor: c.userId === user?.id ? 'var(--text-color)' : 'white', color: c.userId === user?.id ? 'white' : 'black' }}>
-                <strong style={{ display: 'block', color: c.userId === user?.id ? 'var(--primary-color)' : 'var(--primary-color)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{c.userName.toUpperCase()}</strong>
+              <div key={c.id} style={{ padding: '1rem', border: '2px solid var(--border-color)', backgroundColor: c.user_id === user?.id ? 'var(--text-color)' : 'white', color: c.user_id === user?.id ? 'white' : 'black' }}>
+                <strong style={{ display: 'block', color: c.user_id === user?.id ? 'var(--primary-color)' : 'var(--primary-color)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{c.user_name.toUpperCase()}</strong>
                 <p style={{ margin: 0, fontWeight: 600 }}>{c.content}</p>
               </div>
             ))

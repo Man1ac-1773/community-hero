@@ -13,8 +13,8 @@ We allow users to instantly report issues with a photo. The platform uses **Goog
 ## Key Features
 
 - **AI-Powered Analysis:** Upload a photo and Gemini 2.5 Flash automatically extracts the category, severity, and description.
-- **EXIF Geotagging Defense:** The platform extracts hidden GPS metadata from uploaded photos to prevent users from faking the location of an issue.
-- **Community Consensus Resolution:** Issues aren't resolved by a single person. It requires 3 unique verifications from citizens to officially close an issue, preventing abuse.
+- **EXIF Geotagging Integrity:** The platform extracts hidden GPS metadata from uploaded photos to strongly deter users from faking the location of an issue.
+- **Community Consensus Resolution:** Issues aren't resolved by a single person. It requires 3 unique verifications from citizens to officially close an issue, driven by secure atomic database functions.
 - **Gamified Leaderboards:** Users earn "Impact Points" for reporting and verifying issues, turning civic duty into a competitive game.
 - **Audit Timelines & Subscriptions:** Track the complete history of an issue (from "Reported" to "Verified" to "Resolved") and subscribe to get updates.
 - **Social "Rally" Cards:** One-click generation of beautifully formatted issue cards to share on Twitter/WhatsApp and rally neighbors.

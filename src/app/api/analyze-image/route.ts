@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType, Schema } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +16,20 @@ export async function POST(req: NextRequest) {
     if (!imageFile) {
       console.error("[API] No image provided in request.");
       return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    }
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error("[API] Unauthorized: Missing Authorization header.");
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error("[API] Unauthorized: Invalid token or user not found.");
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     console.log(`[API] Image received: ${imageFile.name} (${imageFile.size} bytes, ${imageFile.type})`);
