@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import DiscussionBoard from '@/components/DiscussionBoard';
 import html2canvas from 'html2canvas';
 import dynamic from 'next/dynamic';
+import TriagePanel from '@/components/TriagePanel';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 import Link from 'next/link';
@@ -174,6 +175,25 @@ export default function IssuePage() {
             <h1 style={{ margin: 0, fontSize: '3rem', textTransform: 'uppercase', lineHeight: '1' }}>{report.category}</h1>
             <p style={{ margin: '0.5rem 0 0 0', fontWeight: 600 }}>REPORTED BY: {report.userName?.toUpperCase() || 'CITIZEN'}</p>
           </div>
+
+          {report.triageClassification && (
+            <TriagePanel 
+              triage={{
+                classification: report.triageClassification,
+                confidence: report.triageConfidence,
+                primaryReportId: report.duplicateOf,
+                relatedReportIds: report.relatedReportIds,
+                clusterKey: report.clusterKey,
+                priorityScore: report.priorityScore,
+                priorityBand: report.priorityBand,
+                recommendedAction: report.recommendedAction,
+                reasoning: report.triageReasoning,
+                caseBrief: report.caseBrief,
+                signals: report.triageSignals
+              }} 
+              variant="issue" 
+            />
+          )}
 
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ padding: '0.5rem 1rem', backgroundColor: 'var(--text-color)', color: 'white', fontWeight: 800, fontSize: '1rem' }}>

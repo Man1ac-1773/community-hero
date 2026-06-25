@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
+import { useImpactScore } from '@/lib/hooks';
 
 interface Report {
   id: string;
@@ -16,6 +17,7 @@ interface Report {
   verifiedBy?: string[];
   userId?: string;
   created_at: string;
+  triageClassification?: string;
 }
 
 export default function ProfilePage() {
@@ -41,11 +43,11 @@ export default function ProfilePage() {
         if (myData) setMyReports(myData as Report[]);
         if (myError) console.error("My reports error:", myError);
 
-        // Using ilike because verifiedBy is a stringified JSON array
+        // Using contains because verifiedBy is a Postgres text array
         const { data: verifiedData, error: vError } = await supabase
           .from('reports')
           .select('*')
-          .ilike('verifiedBy', `%${currentUser.id}%`);
+          .contains('verifiedBy', [currentUser.id]);
 
         if (verifiedData) setVerifiedReports(verifiedData as Report[]);
         if (vError) console.error("Verified reports error:", vError);
@@ -64,6 +66,8 @@ export default function ProfilePage() {
     }
     loadProfile();
   }, []);
+
+  const { score: impactScore, level: heroLevel, title: heroTitle } = useImpactScore(user?.id);
 
   if (loading) {
     return (
@@ -86,15 +90,6 @@ export default function ProfilePage() {
 
   const totalReports = myReports.length;
   const totalVerifications = verifiedReports.length;
-  // Calculate impact score: 10 points per report, 2 points per verification
-  const impactScore = (totalReports * 10) + (totalVerifications * 2);
-  
-  let heroLevel = 1;
-  let heroTitle = "BYSTANDER";
-  if (impactScore >= 100) { heroLevel = 5; heroTitle = "CIVIC VIGILANTE"; }
-  else if (impactScore >= 50) { heroLevel = 4; heroTitle = "URBAN HERO"; }
-  else if (impactScore >= 20) { heroLevel = 3; heroTitle = "NEIGHBORHOOD WATCH"; }
-  else if (impactScore >= 10) { heroLevel = 2; heroTitle = "ACTIVE CITIZEN"; }
 
   const ReportGrid = ({ reports }: { reports: Report[] }) => {
     if (reports.length === 0) return <p style={{ fontWeight: 600, color: '#888' }}>NO ISSUES FOUND.</p>;

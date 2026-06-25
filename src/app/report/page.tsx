@@ -6,6 +6,7 @@ import { useToast } from '@/components/ToastProvider';
 import { compressImage } from '@/lib/image';
 import { useAuth } from '@/lib/hooks';
 import exifr from 'exifr';
+import TriagePanel from '@/components/TriagePanel';
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false, loading: () => <div style={{ height: '400px', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>LOADING MAP...</div> });
 
@@ -16,6 +17,8 @@ export default function ReportPage() {
   const [analysis, setAnalysis] = useState<{ category: string, severity: string, description: string } | null>(null);
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [exifLocation, setExifLocation] = useState<[number, number] | null>(null);
+  const [triaging, setTriaging] = useState(false);
+  const [triageResult, setTriageResult] = useState<any>(null);
   const { user } = useAuth();
   const { showToast } = useToast();
 
@@ -75,6 +78,8 @@ export default function ReportPage() {
       const data = await res.json();
       if (res.ok) {
         setAnalysis(data);
+      } else if (res.status === 429) {
+        showToast("The AI is experiencing high traffic. Please wait 30 seconds and try again.", 'warning');
       } else {
         console.error("===== ANALYSIS API FAILED =====");
         console.error("HTTP Status:", res.status);
@@ -90,50 +95,94 @@ export default function ReportPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRunTriage = async () => {
+    if (!analysis || !position) return;
+    setTriaging(true);
+    setTriageResult(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      const res = await fetch('/api/triage-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          category: analysis.category,
+          severity: analysis.severity,
+          description: analysis.description,
+          lat: position[0],
+          lng: position[1]
+        })
+      });
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error("The AI is experiencing high traffic. Please wait 30 seconds and try again.");
+        }
+        throw new Error("Failed to run triage");
+      }
+      const data = await res.json();
+      setTriageResult(data);
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || "Triage failed.", "error");
+    } finally {
+      setTriaging(false);
+    }
+  };
+
+  const handleSubmit = async (e?: React.FormEvent, isOverride = false) => {
+    if (e) e.preventDefault();
     if (!user) {
       showToast("YOU MUST BE LOGGED IN TO SUBMIT A REPORT.", 'warning');
       return;
     }
-    if (!image || !analysis || !position) {
-      showToast("PLEASE COMPLETE ALL STEPS: UPLOAD IMAGE, WAIT FOR AI ANALYSIS, AND PICK A LOCATION.", 'warning');
+    if (!image || !analysis || !position || !triageResult) {
+      showToast("PLEASE COMPLETE ALL STEPS INCLUDING TRIAGE.", 'warning');
       return;
     }
     
+    let uploadedFileName = '';
     try {
       // 1. Upload to Supabase Storage
-      const fileName = `${Date.now()}_${image.name}`;
+      uploadedFileName = `${Date.now()}_${image.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('reports')
-        .upload(fileName, image);
+        .upload(uploadedFileName, image);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('reports')
-        .getPublicUrl(fileName);
+        .getPublicUrl(uploadedFileName);
 
-      // 2. Save to Supabase DB
-      const { error: dbError } = await supabase
-        .from('reports')
-        .insert([
-          {
-            imageUrl: publicUrl,
-            category: analysis.category,
-            severity: analysis.severity,
-            description: analysis.description,
-            lat: position[0],
-            lng: position[1],
-            status: 'OPEN',
-            userId: user.id,
-            userName: user.user_metadata?.full_name || 'Anonymous',
-            verifiedBy: [],
-            history: [{ type: "REPORTED", timestamp: new Date().toISOString(), user: user.id }]
-          }
-        ]);
+      // 2. Save via Trusted API
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
 
-      if (dbError) throw dbError;
+      const res = await fetch('/api/create-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          imageUrl: publicUrl,
+          category: analysis.category,
+          severity: analysis.severity,
+          description: analysis.description,
+          lat: position[0],
+          lng: position[1],
+          ...triageResult,
+          userOverride: isOverride
+        })
+      });
+
+      if (!res.ok) throw new Error("Failed to create report");
 
       showToast("REPORT SUBMITTED SUCCESSFULLY!", 'success');
       
@@ -142,8 +191,13 @@ export default function ReportPage() {
       setPreviewUrl(null);
       setAnalysis(null);
       setPosition(null);
+      setTriageResult(null);
     } catch (error: any) {
       console.error("Error submitting report:", error);
+      if (uploadedFileName) {
+        console.log("Cleaning up orphaned image:", uploadedFileName);
+        supabase.storage.from('reports').remove([uploadedFileName]).catch(e => console.error("Cleanup failed", e));
+      }
       showToast("We couldn't save your report this time. Please try again.", 'error');
     }
   };
@@ -225,9 +279,24 @@ export default function ReportPage() {
             )}
           </div>
 
-          <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1.5rem', fontSize: '1.5rem' }}>
-            SUBMIT CIVIC REPORT
+          <button type="button" onClick={handleRunTriage} disabled={!analysis || !position || triaging} className="btn-primary" style={{ width: '100%', padding: '1.5rem', fontSize: '1.5rem', opacity: (!analysis || !position) ? 0.5 : 1 }}>
+            {triaging ? 'RUNNING TRIAGE...' : '4 / RUN INCIDENT TRIAGE'}
           </button>
+          
+          {triageResult && (
+            <div style={{ marginTop: '1rem' }}>
+              <TriagePanel 
+                triage={triageResult} 
+                variant="report" 
+                onSubmitAnyway={() => handleSubmit(undefined, true)} 
+              />
+              {triageResult.classification !== 'LIKELY_DUPLICATE' && (
+                <button type="submit" className="btn-primary" style={{ width: '100%', padding: '1.5rem', fontSize: '1.5rem', marginTop: '1rem' }}>
+                  SUBMIT CIVIC REPORT
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
       </form>

@@ -100,6 +100,13 @@ export async function POST(req: NextRequest) {
     console.error("Stack:", error.stack);
     console.error("=============================");
     
+    if (error.message && (error.message.includes('Quota exceeded') || error.message.includes('429'))) {
+      return NextResponse.json({ 
+        error: 'AI is experiencing high traffic. Please wait 30 seconds and try again.',
+        isRateLimit: true
+      }, { status: 429 });
+    }
+
     return NextResponse.json({ 
       error: error.message || 'Unknown Server Error',
       details: error.toString()

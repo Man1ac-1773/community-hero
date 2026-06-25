@@ -29,7 +29,19 @@ interface Report {
   status: string;
   verifiedBy?: string[];
   userId?: string;
+  triageClassification?: string;
+  duplicateOf?: string;
+  priorityBand?: string;
 }
+
+const DuplicateIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [20, 32], // Smaller
+  iconAnchor: [10, 32],
+  popupAnchor: [1, -28],
+  className: 'duplicate-marker'
+});
 
 function RecenterAutomatically({ center }: { center: [number, number] }) {
   const map = useMap();
@@ -160,9 +172,12 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
     }
   };
 
+  const [filterTriage, setFilterTriage] = useState('ALL');
+
   const filteredReports = reports.filter(r => {
     if (filterSeverity !== 'ALL' && r.severity?.toUpperCase() !== filterSeverity) return false;
     if (filterStatus !== 'ALL' && r.status?.toUpperCase() !== filterStatus) return false;
+    if (filterTriage === 'PRIMARY_ONLY' && r.triageClassification === 'LIKELY_DUPLICATE') return false;
     return true;
   });
 
@@ -188,7 +203,19 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
           <option value="OPEN">OPEN</option>
           <option value="RESOLVED">RESOLVED</option>
         </select>
+        <select value={filterTriage} onChange={e => setFilterTriage(e.target.value)} style={{ padding: '0.5rem', border: '2px solid black', fontWeight: 600, fontFamily: '"Space Grotesk", sans-serif' }}>
+          <option value="ALL">ALL INCIDENTS</option>
+          <option value="PRIMARY_ONLY">HIDE DUPLICATES</option>
+        </select>
+        <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f0f0f0', border: '1px solid #ccc' }}>
+          <p style={{ margin: 0, fontSize: '0.7rem', color: '#333', maxWidth: '180px', lineHeight: '1.3' }}>
+            <strong>HOW DUPLICATES WORK:</strong><br/>
+            These are reports citizens forced to submit despite the AI flagging them as duplicates. Tracking them reveals hotspots of intense community frustration.
+          </p>
+        </div>
       </div>
+
+      <style>{`.duplicate-marker { filter: grayscale(100%) opacity(60%); }`}</style>
 
       <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', zIndex: 1 }}>
         <TileLayer
@@ -199,19 +226,21 @@ export default function LiveMap({ reports, setReports }: { reports: Report[], se
         {viewMode === 'HEATMAP' ? (
           <HeatmapLayer reports={filteredReports} />
         ) : (
-          filteredReports.map((report, index) => {
-            return (
-            <Marker 
-              key={report.id || `fallback-${index}`} 
-            position={[report.lat, report.lng]}
-            ref={(r) => { markerRefs.current[report.id] = r; }}
-          >
-            <Popup>
-              <div style={{ fontFamily: '"Space Grotesk", sans-serif', maxWidth: '300px' }}>
-                <strong style={{ display: 'block', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: 'var(--primary-color)' }}>
-                  {report.category}
-                </strong>
-                {report.imageUrl && <img src={report.imageUrl} alt="Issue" style={{ width: '100%', height: '100px', objectFit: 'cover', marginBottom: '0.5rem' }} />}
+            filteredReports.map((report, index) => {
+              const isDuplicate = report.triageClassification === 'LIKELY_DUPLICATE';
+              return (
+              <Marker 
+                key={report.id || `fallback-${index}`} 
+                position={[report.lat, report.lng]}
+                icon={isDuplicate ? DuplicateIcon : DefaultIcon}
+                ref={(r) => { markerRefs.current[report.id] = r; }}
+              >
+              <Popup>
+                <div style={{ fontFamily: '"Space Grotesk", sans-serif', maxWidth: '300px' }}>
+                  <strong style={{ display: 'block', fontSize: '1.2rem', textTransform: 'uppercase', marginBottom: '0.5rem', color: isDuplicate ? '#888' : 'var(--primary-color)' }}>
+                    {report.category} {isDuplicate && '(DUPLICATE)'}
+                  </strong>
+                  {report.imageUrl && <img src={report.imageUrl} alt="Issue" style={{ width: '100%', height: '100px', objectFit: 'cover', marginBottom: '0.5rem', filter: isDuplicate ? 'grayscale(80%)' : 'none' }} />}
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600 }}>SEVERITY: {report.severity}</p>
                 <p style={{ 
                   margin: '0 0 0.5rem 0',

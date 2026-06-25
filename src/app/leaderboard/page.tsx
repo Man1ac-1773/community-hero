@@ -31,7 +31,13 @@ export default function LeaderboardPage() {
             }
             const entry = userMap.get(report.userId)!;
             entry.reportsSubmitted += 1;
-            entry.impactScore += 10;
+            
+            // Reduced score for duplicates
+            if (report.triageClassification === 'LIKELY_DUPLICATE') {
+              entry.impactScore += 2;
+            } else {
+              entry.impactScore += 10;
+            }
           }
 
           // Add verification scores

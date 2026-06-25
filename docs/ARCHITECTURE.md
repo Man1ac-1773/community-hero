@@ -76,3 +76,24 @@ We migrated the Google Gemini 2.5 Flash implementation to use its native `respon
 ### Trade-offs
 * **Pros:** 100% database cleanliness. No need for complex regex or fallback string matching on the server.
 * **Cons:** If an edge-case issue occurs that truly doesn't fit the 15 categories, the AI is forced to awkwardly bin it into the generic "Other" category.
+
+---
+
+## ADR 004: Smart Incident Triage & Soft Deduplication
+
+**Status:** Accepted  
+**Date:** June 2026  
+
+### Context
+Civic reporting platforms quickly become polluted with duplicate reports (e.g., three people reporting the same pothole on their commute). This fragments community verifications and clutters the map. We needed a triage system to detect duplicates, but without frustrating users who genuinely believe their report is unique or adding overly aggressive automated deletion.
+
+### Decision
+We built a "Smart Incident Triage" pipeline that combines a deterministic spatial heuristic (fetching nearby open reports within 50m) with an LLM (Gemini 2.5 Flash) to classify new reports as `NEW_INCIDENT`, `LIKELY_DUPLICATE`, or `RELATED_CLUSTER`. 
+
+Crucially, we chose **soft deduplication** over hard merging:
+1. When a duplicate is detected, the user is warned and encouraged to verify the primary issue instead.
+2. However, the user is allowed to **override** the AI's classification and submit the report anyway. If they do, the report is still saved, but marked with a `userOverride` flag and linked to the primary report via the `duplicateOf` column.
+
+### Trade-offs
+* **Pros:** Prevents data loss and respects the user's ground-truth knowledge over the AI's inference. Visual map clutter is still reduced because the UI can conditionally de-emphasize duplicate pins.
+* **Cons:** Requires more complex frontend states and backend schema to track `duplicateOf` relationships and `userOverride` flags, rather than simply discarding the duplicate report.

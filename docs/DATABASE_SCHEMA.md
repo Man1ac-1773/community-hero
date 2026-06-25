@@ -25,6 +25,18 @@ The core table storing every civic issue.
 | `severity` | `text` | | AI-generated severity (e.g., "Critical") |
 | `subscribers` | `text[]` | `[]` | Array of User IDs subscribed to updates |
 | `history` | `jsonb` | `[]` | Audit timeline of events (Created, Verified, Resolved, Updated) |
+| `triageClassification` | `text` | `'NEW_INCIDENT'` | AI Classification: NEW_INCIDENT, LIKELY_DUPLICATE, RELATED_CLUSTER |
+| `triageConfidence` | `float` | `1.0` | Confidence score for the triage classification |
+| `duplicateOf` | `uuid` | | Foreign key linking to the primary report if duplicate |
+| `relatedReportIds` | `uuid[]` | `[]` | Array of related report IDs if part of a cluster |
+| `clusterKey` | `text` | | Hash identifying the hotspot cluster |
+| `priorityScore` | `integer` | `50` | Deterministic priority score (0-100) |
+| `priorityBand` | `text` | `'MEDIUM'` | LOW, MEDIUM, HIGH, CRITICAL |
+| `recommendedAction` | `text` | | Action suggested by the AI triage |
+| `triageReasoning` | `text` | | Explanation of the triage decision |
+| `caseBrief` | `jsonb` | `{}` | AI generated operational case brief |
+| `triageSignals` | `jsonb` | `{}` | Raw deterministic signals used for scoring |
+| `userOverride` | `boolean` | `false` | True if the user manually overrode the AI's deduplication |
 
 ## `comments`
 Stores discussion board messages for specific issues.
