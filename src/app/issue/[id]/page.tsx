@@ -24,6 +24,9 @@ export default function IssuePage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const shareCardRef = useRef<HTMLDivElement>(null);
+  
+  const [generatingUpdate, setGeneratingUpdate] = useState(false);
+  const [publicUpdate, setPublicUpdate] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadIssue() {
@@ -146,6 +149,34 @@ export default function IssuePage() {
     }
   };
 
+  const handleGenerateUpdate = async () => {
+    setGeneratingUpdate(true);
+    setPublicUpdate(null);
+    try {
+      const res = await fetch('/api/generate-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: report.category,
+          severity: report.severity,
+          description: report.description,
+          status: report.status,
+          triageClassification: report.triageClassification,
+          caseBrief: report.caseBrief
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate update.");
+      setPublicUpdate(data.update);
+      showToast("Public update generated successfully!", "success");
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message, "error");
+    } finally {
+      setGeneratingUpdate(false);
+    }
+  };
+
   if (loading) return <h2 style={{ textAlign: 'center', padding: '4rem' }}>LOADING ISSUE DETAILS...</h2>;
   if (!report) return <h2 style={{ textAlign: 'center', padding: '4rem' }}>ISSUE NOT FOUND.</h2>;
 
@@ -220,6 +251,26 @@ export default function IssuePage() {
           </div>
 
           <div style={{ marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+              <button 
+                onClick={handleGenerateUpdate}
+                disabled={generatingUpdate}
+                className="btn-primary"
+                style={{ flexGrow: 1, padding: '1rem', border: '3px solid var(--border-color)', fontWeight: 800, fontSize: '1.2rem', textTransform: 'uppercase', backgroundColor: '#111', color: 'white' }}
+              >
+                {generatingUpdate ? 'GENERATING...' : '✨ AI OFFICIAL COPILOT'}
+              </button>
+            </div>
+            
+            {publicUpdate && (
+              <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: '#f0f0f0', border: '4px solid var(--primary-color)' }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', textTransform: 'uppercase', color: 'var(--primary-color)' }}>PUBLIC ANNOUNCEMENT DRAFT</h3>
+                <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'serif', fontSize: '1.1rem', lineHeight: '1.6', color: '#111' }}>
+                  {publicUpdate}
+                </div>
+              </div>
+            )}
+
             {user && (
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                 {!hasVerified && report.userId !== user.id && (
